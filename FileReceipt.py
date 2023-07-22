@@ -1029,8 +1029,8 @@ class MainWindow(QWidget):
             # Get the selected hash algorithm
             hash_algorithm = self.algorithm_dropdown.currentText()
 
-            # write catalog information to text file
-            with open(txt_file_path, 'w') as file:
+            # write catalog information to csv file - added io.open and encoding to address emojis in file paths
+            with io.open(txt_file_path, 'w', encoding='utf-8') as file:
                 # Write the catalog header to the text file
                 file.write(f"Catalog of selected files (Path, File Hash [{hash_algorithm}], File Size [bytes]):\n")
 
@@ -1099,8 +1099,8 @@ class MainWindow(QWidget):
                 # Write the current date and time to the text file
                 file.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n")
 
-            # write catalog information to csv file
-            with open(csv_file_path, 'w', newline='') as file:
+            # write catalog information to csv file - added io.open and encoding to address emojis in file paths
+            with io.open(csv_file_path, 'w', newline='', encoding='utf-8') as file:
                 writer = csv.writer(file)
 
                 # Write the catalog header to the CSV file

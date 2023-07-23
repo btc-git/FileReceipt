@@ -932,9 +932,9 @@ class MainWindow(QWidget):
     def update_long_paths_label(self):
         long_paths_enabled = self.check_long_paths_enabled()
         if long_paths_enabled:
-            self.long_paths_label.setText("Long file paths: Enabeled")
+            self.long_paths_label.setText("Long file paths: Enabled")
         else:
-            self.long_paths_label.setText("Long file paths: NOT Enabeled!")
+            self.long_paths_label.setText("Long file paths: NOT Enabled!")
 
     # This function is used to check if long file paths are enabled on the system
     def check_long_paths_enabled(self):

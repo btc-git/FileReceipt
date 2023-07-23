@@ -52,6 +52,49 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
+# Message box that displays info about long file paths
+class LongPathsMessageBox(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('Long File Paths in Windows')
+        # remove context help button in title bar
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+
+        # create layout
+        layout = QVBoxLayout(self)
+        self.setLayout(layout)
+
+        # set the path to the icon image - also used to package icon in pyinstaller onefile build
+        icon_path = resource_path("fricon.png")
+        # set window using path specified above
+        self.setWindowIcon(QIcon(icon_path))
+
+        # Create a QLabel instance for the main paragraph
+        text_label = QLabel('By default, Windows imposes a limit on the length of file paths and names, restricting them to approximately 260 characters. If a file path exceeds this limit due to long folder names or file names, some programs might be unable to open the file, even if it appears visible in Windows File Explorer. \n\n| ---------------- File Path ----------------- || ----- File Name ----- |\n\n C:\DocumentsFolder\WorkProjectsFolder\SampleDocument.PDF\n\n| -------- Example File Path Length: 56 Characters Long -------- |\n\nTo overcome this limitation, the "Long File Paths" option must be manually enabled in Windows. Without enabling this setting, FileReceipt, and other programs, may encounter difficulties consistently opening files within long file paths. Consequently, when creating a FileReceipt for files and folders with long paths, failure to enable the "Long File Paths" setting may lead to errors or omission of these files from the catalog.\n\nWARNING: Modifying the Windows Registry can be dangerous and may render your computer unusable. Seek assistance from your IT department or proceed with caution and create a backup before making changes.')
+        text_label.setWordWrap(True)
+        text_label.setStyleSheet("font-size: 11pt;")
+        layout.addWidget(text_label)
+
+        # Create a QLabel instance for the sentence with hyperlinks
+        link_label = QLabel('Visit the following pages for information and instructions on enabling Long File Paths: <a href="https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=registry">Long File Paths in Windows</a> and <a href="https://www.autodesk.com/support/technical/article/caas/sfdcarticles/sfdcarticles/The-Windows-10-default-path-length-limitation-MAX-PATH-is-256-characters.html">Enabling Long File Paths</a>.')
+        link_label.setWordWrap(True)
+        # Set the interaction flags on the QLabel to allow for text browser interactions - allows for clickable links
+        link_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        # Enable opening of external links within the QLabel
+        link_label.setOpenExternalLinks(True)
+        link_label.setStyleSheet("font-size: 11pt;")
+        layout.addWidget(link_label)
+
+        # Create close button for window
+        ok_button = QPushButton('Close')
+        ok_button.clicked.connect(self.accept)
+        ok_button_layout = QHBoxLayout()
+        # add stretchable space on right and left of OK button
+        ok_button_layout.addStretch(1)
+        ok_button_layout.addWidget(ok_button)
+        ok_button_layout.addStretch(1)
+        layout.addLayout(ok_button_layout)
+
 # Message box that displays info about hash algorithm selection
 class HashInfoMessageBox(QDialog):
     def __init__(self, parent=None):
@@ -69,15 +112,22 @@ class HashInfoMessageBox(QDialog):
         # set window using path specified above
         self.setWindowIcon(QIcon(icon_path))
 
-        # Create a QLabel instance
-        text_label = QLabel('FileReceipt records a hash value for each file, which serves as a unique identifier for the file. This hash value is generated using a specific hash algorithm. By default, FileReceipt utilizes the SHA-256 hash algorithm to calculate the corresponding SHA-256 hash values for each file. However, other commonly used hash algorithms can be selected from the dropdown menu. Changing the hash algorithm may be useful to coordinate with external programs, processes, or individuals. In order for hash values of identical files to match, the files must be processed using the same hash algorithm. This allows for direct comparisons and matching of hash values between different systems. For more information, see these pages on <a href="https://en.wikipedia.org/wiki/File_verification">File Verification</a> and <a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function">Cryptographic Hash Functions</a>.')
+        # Create a QLabel instance for the main paragraph
+        text_label = QLabel('FileReceipt records a hash value for each file, which serves as a unique identifier for the file. This hash value is generated using a specific hash algorithm.\n\nBy default, FileReceipt utilizes the SHA-256 hash algorithm to calculate the corresponding SHA-256 hash values for each file. However, other commonly used hash algorithms can be selected from the dropdown menu. Changing the hash algorithm may be useful to coordinate with external programs, processes, or individuals. In order for hash values of identical files to match, the files must be processed using the same hash algorithm. This allows for direct comparisons and matching of hash values between different systems.')
         text_label.setWordWrap(True)
-        # Set the interaction flags on the QLabel to allow for text browser interactions - allows for clickable link
-        text_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
-        # Enable opening of external links within the QLabel
-        text_label.setOpenExternalLinks(True)
         text_label.setStyleSheet("font-size: 11pt;")
         layout.addWidget(text_label)
+
+        # Create a QLabel instance for the sentence with hyperlinks
+        link_label = QLabel('For more information, see these pages on <a href="https://en.wikipedia.org/wiki/File_verification">File Verification</a> and <a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function">Cryptographic Hash Functions</a>.')
+        link_label.setWordWrap(True)
+        # Set the interaction flags on the QLabel to allow for text browser interactions - allows for clickable links
+        link_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        # Enable opening of external links within the QLabel
+        link_label.setOpenExternalLinks(True)
+        link_label.setStyleSheet("font-size: 11pt;")
+        layout.addWidget(link_label)
+
 
         # Create close button for window
         ok_button = QPushButton('Close')
@@ -153,7 +203,6 @@ class LicenseMessageBox(QDialog):
         window_width = int(screen_geometry.width() * 0.4)
         window_height = int(screen_geometry.height() * 0.6)
         self.resize(QSize(window_width, window_height))
-
 
 
 # Message box that appears when file processing is complete
@@ -631,6 +680,9 @@ class MainWindow(QWidget):
         self.folder_path = ""
         # Set processing flag as False
         self.processing = False
+        
+        # Call update_long_paths_label to initialize the label based on the current system settings
+        self.update_long_paths_label()
 
     # The method that initializes the UI of the main window
     def init_ui(self):
@@ -750,7 +802,7 @@ class MainWindow(QWidget):
             message_box.exec_()
 
         # Create a QLabel with a hyperlink
-        algorithm_link = QLabel('<a href="#">What does this mean?</a>')
+        algorithm_link = QLabel('<a href="#">What is this?</a>')
         # Don't allow external links
         algorithm_link.setOpenExternalLinks(False)
         # Set the text format to RichText
@@ -813,16 +865,16 @@ class MainWindow(QWidget):
         self.progress_bar.setValue(0)
 
         # Create a QHBoxLayout for the bottom toolbar
-        bottom_toolbar = QHBoxLayout()
+        bottom_toolbar_layout = QHBoxLayout()
         # Set the margins for the bottom toolbar
-        bottom_toolbar.setContentsMargins(0, 15, 0, 0)
-        # Add the bottom toolbar to the bottom layout
-        bottom_layout.addLayout(bottom_toolbar)
+        bottom_toolbar_layout.setContentsMargins(0, 15, 0, 0)
+        # Add the bottom toolbar layout to the bottom layout
+        bottom_layout.addLayout(bottom_toolbar_layout)
 
         # Create a QLabel for the 'Visit GitHub' label
         label = QLabel('Visit GitHub for more information:')
-        # Add the label to the bottom toolbar
-        bottom_toolbar.addWidget(label)
+        # Add the label to the bottom toolbar layout
+        bottom_toolbar_layout.addWidget(label)
 
         # Create a QLabel with a hyperlink to the GitHub repository
         hyperlink = QLabel('<a href="https://github.com/btc-git/FileReceipt">github.com/btc-git/FileReceipt</a>')
@@ -830,16 +882,34 @@ class MainWindow(QWidget):
         hyperlink.setOpenExternalLinks(True)
         # Connect the hyperlink's activated signal to the open_link method
         hyperlink.linkActivated.connect(self.open_link)
-        # Add the hyperlink to the bottom toolbar
-        bottom_toolbar.addWidget(hyperlink)
+        # Add the hyperlink to the bottom toolbar layout
+        bottom_toolbar_layout.addWidget(hyperlink)
 
-        # Create a spacer item to push the next widget to the rightmost position
-        spacer = QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum)
-        # Add the spacer item to the bottom toolbar
-        bottom_toolbar.addItem(spacer)
+        # Add a stretchable space to push the next widgets to the center
+        bottom_toolbar_layout.addStretch(1)
 
-        # Add stretch to the bottom toolbar
-        bottom_toolbar.addStretch(1)
+        # Create a QLabel for the "Long file paths are enabled" label
+        self.long_paths_label = QLabel('Long file paths are: [Undetected!].')
+
+        # Add the "Long file paths are enabled" label to the bottom toolbar layout
+        bottom_toolbar_layout.addWidget(self.long_paths_label)
+
+        # Create a QLabel with a hyperlink to explain the meaning of "?"
+        question_label = QLabel('<a href="#">Help?</a>')
+        # Don't allow external links
+        question_label.setOpenExternalLinks(False)
+        # Set the text format to RichText
+        question_label.setTextFormat(Qt.RichText)
+        # Allow text interaction for the hyperlink
+        question_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        # Connect the hyperlink's activated signal to the show_long_paths_message_box method
+        question_label.linkActivated.connect(self.show_long_paths_message_box)
+
+        # Add the "?" hyperlink to the bottom toolbar layout
+        bottom_toolbar_layout.addWidget(question_label)
+
+        # Add a stretchable space to push the next widgets to the center
+        bottom_toolbar_layout.addStretch(1)
 
         # Create a QLabel for the version and license information
         version_label = QLabel('License: <a href="#">GNU GPLv3</a>')
@@ -849,8 +919,35 @@ class MainWindow(QWidget):
         version_label.setTextFormat(Qt.RichText)
         # Connect the version_label's activated signal to the show_license method
         version_label.linkActivated.connect(self.show_license)
-        # Add the version label to the bottom toolbar
-        bottom_toolbar.addWidget(version_label)
+        # Add the version label to the bottom toolbar layout
+        bottom_toolbar_layout.addWidget(version_label)
+
+    # Function to show long paths information message box
+    def show_long_paths_message_box(self):
+        message_box = LongPathsMessageBox()
+        message_box.exec_()
+
+
+    # This function is used to update the long file paths label text based on the current system settings
+    def update_long_paths_label(self):
+        long_paths_enabled = self.check_long_paths_enabled()
+        if long_paths_enabled:
+            self.long_paths_label.setText("Long file paths: Enabeled")
+        else:
+            self.long_paths_label.setText("Long file paths: NOT Enabeled!")
+
+    # This function is used to check if long file paths are enabled on the system
+    def check_long_paths_enabled(self):
+        try:
+            command = "powershell Get-ItemPropertyValue HKLM:\\System\\CurrentControlSet\\Control\\Filesystem LongPathsEnabled"
+            result = subprocess.check_output(command, shell=True, text=True).strip()
+            return result == "1"
+        except subprocess.CalledProcessError as e:
+            print(f"Error executing PowerShell command: {e}")
+            return False
+
+
+
 
     def show_license(self):
         # Create a LicenseMessageBox instance
@@ -1045,7 +1142,8 @@ class MainWindow(QWidget):
                 if error_logs:
                     # Write each error to the text file
                     for error in error_logs:
-                        file.write(f'{str(error)}\n')
+                        # Use os.path.normpath() to ensure the paths are displayed correctly
+                        file.write(f'{os.path.normpath(error[0])}: {error[1]}\n')
                         file.write('\n')
                 else:
                     # Write a message indicating no errors were recorded
@@ -1099,7 +1197,7 @@ class MainWindow(QWidget):
                 # Write the current date and time to the text file
                 file.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n")
 
-            # write catalog information to csv file - added io.open and encoding to address emojis in file paths
+            # write catalog information to csv file
             with io.open(csv_file_path, 'w', newline='', encoding='utf-8') as file:
                 writer = csv.writer(file)
 
@@ -1117,7 +1215,8 @@ class MainWindow(QWidget):
                 if error_logs:
                     # Write each error as a row in the CSV file
                     for error in error_logs:
-                        writer.writerow([str(error)])
+                        # Use os.path.normpath() to ensure the paths are displayed correctly
+                        writer.writerow([os.path.normpath(error[0]), error[1]])
                         writer.writerow([])
                 else:
                     # Write a message indicating no errors were recorded

@@ -1,4 +1,4 @@
-### ** Program under development. Independently validate all FileReceipt results. (7/23/2023) **
+### * Program under development. Independently validate all FileReceipt results. (7/23/2023) *
 
 # FileReceipt
 FileReceipt is a program that quickly generates a precise catalog of user-selected files, folders, and zip files. It is particularly useful for creating an inventory of files that are nested within folders, subfolders, and zip files, eliminating the need for time-consuming manual inspection and documentation.
@@ -46,9 +46,9 @@ C:\DocumentsFolder\WorkProjectsFolder\SampleDocument.PDF
 
 To overcome this limitation, the "Long File Paths" option must be manually enabled in Windows. Without enabling this setting, FileReceipt, and other programs, may encounter difficulties consistently opening files within long file paths. Consequently, when creating a FileReceipt for files and folders with long paths, failure to enable the "Long File Paths" setting may lead to errors or omission of these files from the catalog.
 
-Follow these steps to enable "Long File Paths":
-1. WARNING: Modifying the Windows Registry can be dangerous and may render your computer unusable. Seek assistance from your IT department or proceed with caution and create a backup before making changes.
-2. Visit the following pages for information and instructions on enabling "Long File Paths":
+WARNING: Modifying the Windows Registry can be dangerous and may render your computer unusable. Seek assistance from your IT department or proceed with caution and create a backup before making changes.
+
+Visit the following pages for information and instructions on enabling "Long File Paths":
    - [Long File Paths in Windows](https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=registry)
    - [Enabling Long File Paths](https://www.autodesk.com/support/technical/article/caas/sfdcarticles/sfdcarticles/The-Windows-10-default-path-length-limitation-MAX-PATH-is-256-characters.html)
 

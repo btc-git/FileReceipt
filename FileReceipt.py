@@ -17,8 +17,9 @@ import csv
 import subprocess
 import sys
 import zipfile
-from PyQt5 import QtCore
 from datetime import datetime
+from tzlocal import get_localzone
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import QApplication, QTextEdit, QScrollArea, QDialog, QComboBox, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFileDialog, QListWidget, QMessageBox, QLabel, QDesktopWidget, QAbstractItemView, QProgressBar, QSpacerItem, QSizePolicy
 from PyQt5.QtCore import Qt, QUrl, QThread, QSize
 from PyQt5.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent, QDesktopServices, QIcon, QScreen
@@ -342,7 +343,9 @@ class HashingThread(QThread):
         self.hash_algorithm = hash_algorithm  # Hash algorithm to use
 
     def run(self):
+        total_files = len(self.file_paths)  # Total number of files
         current_file = 0  # Current file index
+
         # Loop over all file paths
         for file_path in self.file_paths:
             # Break the loop if the process has been cancelled
@@ -356,9 +359,6 @@ class HashingThread(QThread):
                 if file_path.lower().endswith('.zip'):
                     # Calculate the hash of the zip file
                     hash_value, file_size, error_message = self.calculate_file_hash(file_path)
-                    # Break the loop if the process has been cancelled
-                    if self.cancelled:
-                        break
                     # Handle errors during hash calculation
                     if error_message:
                         # Append error to error logs
@@ -366,9 +366,6 @@ class HashingThread(QThread):
                     else:
                         # Calculate hashes for files inside the zip file
                         hashes, errors, empty_files_zip, empty_dirs_zip = self.calculate_zip_hashes_from_path(file_path)
-                        # Break the loop if the process has been cancelled
-                        if self.cancelled:
-                            break
                         # Append hashes and errors to respective lists
                         self.file_hashes.extend(hashes)
                         self.error_logs.extend(errors)
@@ -377,9 +374,6 @@ class HashingThread(QThread):
                 else:
                     # Calculate the hash of the file
                     hash_value, file_size, error_message = self.calculate_file_hash(file_path)
-                    # Break the loop if the process has been cancelled
-                    if self.cancelled:
-                        break
                     # Check if file is empty
                     if file_size == 0:
                         # Create a file info list
@@ -387,7 +381,7 @@ class HashingThread(QThread):
                         # Append the file info to empty_files and file_hashes lists
                         self.empty_files.append(file_info)
                         self.file_hashes.append(file_info)
-                        # Handle errors during hash calculation
+                    # Handle errors during hash calculation
                     elif error_message:
                         # Append error to error logs
                         self.error_logs.append((os.path.normpath(file_path), error_message))
@@ -399,28 +393,21 @@ class HashingThread(QThread):
             elif os.path.isdir(file_path):
                 # Calculate hashes for files inside the directory
                 hashes, errors, empty_files_folder, empty_dirs_folder = self.calculate_folder_hashes(file_path)
-                # Break the loop if the process has been cancelled
-                if self.cancelled:
-                    break
                 # Append hashes and errors to respective lists
                 self.file_hashes.extend(hashes)
                 self.error_logs.extend(errors)
                 self.empty_files.extend(empty_files_folder)
                 self.empty_directories.extend(empty_dirs_folder)
 
-                # Append directory info to file_hashes list
-                dir_hash_value = "--FOLDER--"
-                dir_file_size = "N/A"
-                # self.file_hashes.append([os.path.normpath(file_path), dir_hash_value, dir_file_size])
-        
             # If the process hasn't been cancelled, calculate and emit the progress
             if not self.cancelled:
-                progress_value = int((current_file / len(self.file_paths)) * 100)
+                progress_value = int((current_file / total_files) * 100)
                 self.progress.emit(progress_value)
                 self.processing_file.emit(os.path.basename(file_path))
-        
+
         # Emit the finished signal with the results
         self.finished.emit(self.file_hashes, self.error_logs, self.empty_files, self.empty_directories)
+
 
 
 	# Define a method to calculate the hash of a file
@@ -451,10 +438,6 @@ class HashingThread(QThread):
                     processed_bytes += len(buffer)
                     # Read the next block from the file
                     buffer = file.read(block_size)
-                    # Calculate the progress value
-                    progress_value = int((processed_bytes / file_size) * 100)
-                    # Emit a signal to update the progress
-                    self.progress.emit(progress_value)
                     # Emit a signal to update the file being processed
                     self.processing_file.emit(os.path.basename(file_path))
             # Return the hexdigest of the hash, the file size, and no error
@@ -840,10 +823,10 @@ class MainWindow(QWidget):
 
         # Create a QLabel for the processing text
         self.processing_label = QLabel('Processing:')
-        # Set a maximum width for the label
-        max_label_width = int(desired_width * 0.3)
-        # Set the maximum width of the label
-        self.processing_label.setMaximumWidth(max_label_width)
+        # Set a minimum width for the label
+        min_label_width = int(desired_width * 0.3)
+        # Set the minimum width of the label
+        self.processing_label.setMinimumWidth(min_label_width)
         # Align the label's text to the left
         self.processing_label.setAlignment(Qt.AlignLeft)
         # Set the label's size policy
@@ -1192,10 +1175,13 @@ class MainWindow(QWidget):
 
                 # Add extra new lines for separation
                 file.write("\n\n")
-                # Write the section header for date/time generated to the text file
+
+                # Get and format local timezone
+                local_timezone = get_localzone()
+                current_time = datetime.now(local_timezone).strftime("%Y-%m-%d %H:%M:%S %Z")
+
                 file.write("Date/Time Generated:\n")
-                # Write the current date and time to the text file
-                file.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n")
+                file.write(current_time + "\n")
 
             # write catalog information to csv file
             with io.open(csv_file_path, 'w', newline='', encoding='utf-8') as file:
@@ -1261,10 +1247,13 @@ class MainWindow(QWidget):
 
                 # Add empty rows for separation
                 writer.writerow([] * 2)
-                # Write the section header for date/time generated to the CSV file
+
+                # Get and format local timezone
+                local_timezone = get_localzone()
+                current_time = datetime.now(local_timezone).strftime("%Y-%m-%d %H:%M:%S %Z")
+
                 writer.writerow(["Date/Time Generated:"])
-                # Write the current date and time to the CSV file
-                writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+                writer.writerow([current_time])
 
             # Set the progress bar value to 100% to indicate completion
             self.progress_bar.setValue(100)

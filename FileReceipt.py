@@ -22,7 +22,7 @@ from tzlocal import get_localzone
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QApplication, QTextEdit, QScrollArea, QDialog, QComboBox, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFileDialog, QListWidget, QMessageBox, QLabel, QDesktopWidget, QAbstractItemView, QProgressBar, QSpacerItem, QSizePolicy
 from PyQt5.QtCore import Qt, QUrl, QThread, QSize
-from PyQt5.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent, QDesktopServices, QIcon, QScreen
+from PyQt5.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent, QDesktopServices, QIcon
 
 
 # Dictionary of hash algorithms and their corresponding hashlib functions
@@ -285,7 +285,6 @@ class DropZone(QLabel):
     def dropEvent(self, event: QDropEvent) -> None:
         self.parent().drop_list.addItemsFromUrls(event.mimeData().urls())
 
-
 # Define a new class FileList, which inherits from QListWidget. This class creates a file list box for files to be processed.
 class FileList(QListWidget):
     def __init__(self, parent=None):
@@ -353,6 +352,11 @@ class HashingThread(QThread):
                 break
             current_file += 1  # Increment the current file index
 
+            # Update progress for the current file
+            progress_value = int((current_file / total_files) * 100)
+            self.progress.emit(progress_value)
+            self.processing_file.emit(os.path.basename(file_path))
+
             # Check if the file path is a file
             if os.path.isfile(file_path):
                 # Handle zip files separately
@@ -407,8 +411,6 @@ class HashingThread(QThread):
 
         # Emit the finished signal with the results
         self.finished.emit(self.file_hashes, self.error_logs, self.empty_files, self.empty_directories)
-
-
 
 	# Define a method to calculate the hash of a file
     def calculate_file_hash(self, file_path):
@@ -483,6 +485,10 @@ class HashingThread(QThread):
             # If the process has been cancelled, break from the loop
             if self.cancelled:
                 break
+
+            # Update progress for the current file within the zip
+            self.processing_file.emit(os.path.basename(file))
+
             # Read the data of the file
             file_data = zip_ref.read(file)
             # If the file is a zip archive itself
@@ -559,7 +565,6 @@ class HashingThread(QThread):
         
         # Return the hashes, errors, empty files, and empty directories
         return file_hashes, error_logs, empty_files_zip, empty_dirs_zip
-
 
     # Define a method to calculate the hashes of the files in a folder
     def calculate_folder_hashes(self, folder_path):
@@ -641,7 +646,6 @@ class HashingThread(QThread):
                             # Add the error message to the list of errors
                             error_logs.append(error_message)
 
-
         except Exception as e:
             # If an exception occurred, create an error message
             error_message = f"Error walking through folder '{os.path.normpath(folder_path)}': {str(e)}"
@@ -663,7 +667,6 @@ class MainWindow(QWidget):
         self.folder_path = ""
         # Set processing flag as False
         self.processing = False
-        
         # Call update_long_paths_label to initialize the label based on the current system settings
         self.update_long_paths_label()
 
@@ -910,7 +913,6 @@ class MainWindow(QWidget):
         message_box = LongPathsMessageBox()
         message_box.exec_()
 
-
     # This function is used to update the long file paths label text based on the current system settings
     def update_long_paths_label(self):
         long_paths_enabled = self.check_long_paths_enabled()
@@ -929,20 +931,15 @@ class MainWindow(QWidget):
             print(f"Error executing PowerShell command: {e}")
             return False
 
-
-
-
     def show_license(self):
         # Create a LicenseMessageBox instance
         message_box = LicenseMessageBox()
         # Execute the message box
         message_box.exec_()
 
-
     def open_link(self, url):
         # Open the specified URL
         QDesktopServices.openUrl(QUrl(url))
-
 
     def remove_files(self):
         # Check if processing is ongoing
@@ -953,7 +950,6 @@ class MainWindow(QWidget):
             self.drop_list.file_paths.remove(item.text())
             self.drop_list.takeItem(self.drop_list.row(item))
 
-
     def remove_all_files(self):
         # Check if processing is ongoing
         if self.processing:
@@ -961,7 +957,6 @@ class MainWindow(QWidget):
         # Clear all files from the drop list
         self.drop_list.clear()
         self.drop_list.file_paths.clear()
-
 
     def select_files(self):
         # Check if processing is ongoing
@@ -972,13 +967,11 @@ class MainWindow(QWidget):
         # Add the selected files to the drop list
         self.drop_list.addItemsFromUrls([QUrl.fromLocalFile(os.path.normpath(fp)) for fp in file_paths])
 
-
     def toggle_processing(self):
         if self.processing:
             self.cancel_processing()
         else:
             self.start_processing()
-
 
     def start_processing(self):
         if self.drop_list.count() == 0:
@@ -1032,7 +1025,6 @@ class MainWindow(QWidget):
         self.run_button.setText('Cancel')
         self.run_button.setStyleSheet('background-color: red;')
 
-
     # This function is used to cancel the processing task if required.
     def cancel_processing(self):
         # If the hashing_thread exists
@@ -1072,14 +1064,13 @@ class MainWindow(QWidget):
                 background-color: #32CD32;
             }
         ''')
-
         # Enable all buttons that are not the run_button
         for button in self.findChildren(QPushButton):
             if button != self.run_button:
                 button.setEnabled(True)
         # Enable the algorithm_dropdown
         self.algorithm_dropdown.setEnabled(True)
-                
+
     # This function is used to update the progress bar value
     def update_progress(self, value):
         self.progress_bar.setValue(value)
@@ -1289,7 +1280,6 @@ class MainWindow(QWidget):
                     hash_counts[hash_value] = [hash_info]
         # Return a list of all hash_info lists that have more than 1 element (indicating a duplicate file)
         return [duplicate_group for duplicate_group in hash_counts.values() if len(duplicate_group) > 1]
-
 
     # This function is used to open the specified folder
     def open_folder(self, folder_path):

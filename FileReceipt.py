@@ -341,21 +341,29 @@ class HashingThread(QThread):
         self.cancelled = False  # Flag to cancel the process
         self.hash_algorithm = hash_algorithm  # Hash algorithm to use
 
+    # count total number of files (but not wthin zip files) that will be processed and use for progress calculation
+    def get_total_file_count(self, file_paths):
+        total_count = 0
+        for path in file_paths:
+            if os.path.isfile(path):
+                total_count += 1
+            elif os.path.isdir(path):
+                for root, dirs, files in os.walk(path):
+                    total_count += len(files)
+        return total_count
+
     def run(self):
-        total_files = len(self.file_paths)  # Total number of files
-        current_file = 0  # Current file index
+        # get count of total number of files to be processed
+        total_files = self.get_total_file_count(self.file_paths)
+
+        self.current_file = 0  # Current file index
 
         # Loop over all file paths
         for file_path in self.file_paths:
             # Break the loop if the process has been cancelled
             if self.cancelled:
                 break
-            current_file += 1  # Increment the current file index
-
-            # Update progress for the current file
-            progress_value = int((current_file / total_files) * 100)
-            self.progress.emit(progress_value)
-            self.processing_file.emit(os.path.basename(file_path))
+            self.current_file += 1  # Increment the current file index
 
             # Check if the file path is a file
             if os.path.isfile(file_path):
@@ -396,7 +404,7 @@ class HashingThread(QThread):
             # Check if the file path is a directory     
             elif os.path.isdir(file_path):
                 # Calculate hashes for files inside the directory
-                hashes, errors, empty_files_folder, empty_dirs_folder = self.calculate_folder_hashes(file_path)
+                hashes, errors, empty_files_folder, empty_dirs_folder = self.calculate_folder_hashes(file_path, total_files, self.current_file)
                 # Append hashes and errors to respective lists
                 self.file_hashes.extend(hashes)
                 self.error_logs.extend(errors)
@@ -405,7 +413,7 @@ class HashingThread(QThread):
 
             # If the process hasn't been cancelled, calculate and emit the progress
             if not self.cancelled:
-                progress_value = int((current_file / total_files) * 100)
+                progress_value = int((self.current_file / total_files) * 100)
                 self.progress.emit(progress_value)
                 self.processing_file.emit(os.path.basename(file_path))
 
@@ -567,7 +575,7 @@ class HashingThread(QThread):
         return file_hashes, error_logs, empty_files_zip, empty_dirs_zip
 
     # Define a method to calculate the hashes of the files in a folder
-    def calculate_folder_hashes(self, folder_path):
+    def calculate_folder_hashes(self, folder_path, total_files, current_file):
         # Create empty lists for the hashes, errors, empty files, and empty directories
         file_hashes = []
         error_logs = []
@@ -588,6 +596,14 @@ class HashingThread(QThread):
 
                 # Loop over the files
                 for file in files:
+
+                    # Increment the current file index
+                    self.current_file += 1
+                    # Calculate the progress based on current_file and total_files
+                    progress_value = int((self.current_file / total_files) * 100)
+                    # Emit the progress signal
+                    self.progress.emit(progress_value)
+
                     # Get the full path of the file
                     file_path = os.path.join(root, file)
                     # If the file is a zip archive

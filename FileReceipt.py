@@ -703,7 +703,7 @@ class MainWindow(QWidget):
         desired_height = max(int(screen.height() * 0.35), 400)
 
         # Convert desired_height to an integer before performing the multiplication
-        desired_width = int(desired_height * 2.3)
+        desired_width = int(desired_height * 2.5)
 
         # Resize the window based on calculated dimensions
         self.resize(desired_width, desired_height)

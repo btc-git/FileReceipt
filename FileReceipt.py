@@ -24,6 +24,11 @@ from PyQt5.QtWidgets import QApplication, QTextEdit, QScrollArea, QDialog, QComb
 from PyQt5.QtCore import Qt, QUrl, QThread, QSize
 from PyQt5.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent, QDesktopServices, QIcon
 
+# Set the global font
+font = QApplication.font()
+font.setFamily("Arial")
+font.setPointSize(10)
+QApplication.setFont(font)
 
 # Dictionary of hash algorithms and their corresponding hashlib functions
 HASH_ALGORITHMS = {
@@ -71,7 +76,7 @@ class LongPathsMessageBox(QDialog):
         self.setWindowIcon(QIcon(icon_path))
 
         # Create a QLabel instance for the main paragraph
-        text_label = QLabel('By default, Windows imposes a limit on the length of file paths and names, restricting them to approximately 260 characters. If a file path exceeds this limit due to long folder names or file names, some programs might be unable to open the file, even if it appears visible in Windows File Explorer. \n\n| ---------------- File Path ----------------- || ----- File Name ----- |\n\n C:\DocumentsFolder\WorkProjectsFolder\SampleDocument.PDF\n\n| -------- Example File Path Length: 56 Characters Long -------- |\n\nTo overcome this limitation, the "Long File Paths" option must be manually enabled in Windows. Without enabling this setting, FileReceipt, and other programs, may encounter difficulties consistently opening files within long file paths. Consequently, when creating a FileReceipt for files and folders with long paths, failure to enable the "Long File Paths" setting may lead to errors or omission of these files from the catalog.\n\nWARNING: Modifying the Windows Registry can be dangerous and may render your computer unusable. Seek assistance from your IT department or proceed with caution and create a backup before making changes.')
+        text_label = QLabel('By default, Windows imposes a limit on the length of file paths and names, restricting them to approximately 260 characters. If a file path exceeds this limit due to long folder names or file names, some programs might be unable to open the file, even if it appears visible in Windows File Explorer. \n\n| ------------------- File Path ------------------- || ------ File Name ------ |\n\n C:\DocumentsFolder\WorkProjectsFolder\SampleDocument.PDF\n\n| ---------- Example File Path Length: 56 Characters Long ---------- |\n\nTo overcome this limitation, the "Long File Paths" option must be manually enabled in Windows. Without enabling this setting, FileReceipt, and other programs, may encounter difficulties consistently opening files within long file paths. Consequently, when creating a FileReceipt for files and folders with long paths, failure to enable the "Long File Paths" setting may lead to errors or omission of these files from the catalog.\n\nWARNING: Modifying the Windows Registry can be dangerous and may render your computer unusable. Seek assistance from your IT department or proceed with caution and create a backup before making changes.')
         text_label.setWordWrap(True)
         text_label.setStyleSheet("font-size: 11pt;")
         layout.addWidget(text_label)
@@ -695,10 +700,10 @@ class MainWindow(QWidget):
         screen = QDesktopWidget().screenGeometry()
 
         # Calculate desired height for the window, ensuring a minimum of 400 pixels
-        desired_height = max(int(screen.height() * 0.3), 400)
+        desired_height = max(int(screen.height() * 0.35), 400)
 
         # Convert desired_height to an integer before performing the multiplication
-        desired_width = int(desired_height * 2.5)
+        desired_width = int(desired_height * 2.3)
 
         # Resize the window based on calculated dimensions
         self.resize(desired_width, desired_height)

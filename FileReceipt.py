@@ -300,6 +300,12 @@ class FileList(QListWidget):
         self.file_paths = set()
         # Set the selection mode for this QListWidget to allow multiple items to be selected
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
+
+        # Create a font with the desired font size
+        font = self.font()
+        font.setPointSize(12)  # Set your desired font size here
+        self.setFont(font)  # Set the modified font to the QListWidget
+
     
     # Define the event handler for when a drag enters this QListWidget
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:

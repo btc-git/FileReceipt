@@ -1,8 +1,11 @@
-### * Program under development. Independently validate all FileReceipt results. (8/12/2023) *
+### * Program under development. Independently validate all FileReceipt results. (8/23/2023) *
 
 # FileReceipt
 FileReceipt is a program that quickly generates a precise catalog of user-selected files, folders, and zip files. It is particularly useful for creating an inventory of files that are nested within folders, subfolders, and zip files, eliminating the need for time-consuming manual inspection and documentation.
 
+<p align="center">
+  <img src="https://crimlawtech.com/FileReceiptScreenshot.PNG" alt="FileReceipt Screenshot" width="75%">
+</p>
 
 
 ### FileReceipt records the following information for each file:
@@ -54,7 +57,7 @@ Visit the following pages for information and instructions on enabling "Long Fil
 
 ## Download (for most users)
 
-Download the latest release on GitHub [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe). (8/12/2023)
+Download the latest release on GitHub [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe). (8/23/2023)
 - You may receive a [warning](https://learn.microsoft.com/en-us/windows/security/operating-system-security/virus-and-threat-protection/microsoft-defender-smartscreen/) when you run the program for the first time. To bypass the warning, click 'More info' and then 'Run anyway.' The program has been submitted to Microsoft for security analysis, which should make that warning go away soon.
 
 ## Build (for developers)

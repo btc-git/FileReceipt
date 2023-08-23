@@ -4,7 +4,7 @@
 FileReceipt is a program that quickly generates a precise catalog of user-selected files, folders, and zip files. It is particularly useful for creating an inventory of files that are nested within folders, subfolders, and zip files, eliminating the need for time-consuming manual inspection and documentation.
 
 <p align="center">
-  <img src="https://crimlawtech.com/FileReceiptScreenshot.PNG" alt="FileReceipt Screenshot" width="75%">
+  <img src="https://crimlawtech.com/FileReceiptScreenshot.PNG" alt="FileReceipt Screenshot">
 </p>
 
 

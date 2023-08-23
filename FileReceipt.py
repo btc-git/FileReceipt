@@ -1,8 +1,8 @@
 # FileReceipt is licensed under the GNU General Public License v3.0.
 # See the LICENSE.txt file in the project root for the full license text.
 
-# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
-# See the GNU General Public License for more details. 
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 # Copyright (c) 2023 Brian Cummings
@@ -76,13 +76,13 @@ class LongPathsMessageBox(QDialog):
         self.setWindowIcon(QIcon(icon_path))
 
         # Create a QLabel instance for the main paragraph
-        text_label = QLabel('By default, Windows imposes a limit on the length of file paths and names, restricting them to approximately 260 characters. If a file path exceeds this limit due to long folder names or file names, some programs might be unable to open the file, even if it appears visible in Windows File Explorer. \n\n| ------------------- File Path ------------------- || ------ File Name ------ |\n\n C:\DocumentsFolder\WorkProjectsFolder\SampleDocument.PDF\n\n| ---------- Example File Path Length: 56 Characters Long ---------- |\n\nTo overcome this limitation, the "Long File Paths" option must be manually enabled in Windows. Without enabling this setting, FileReceipt, and other programs, may encounter difficulties consistently opening files within long file paths. Consequently, when creating a FileReceipt for files and folders with long paths, failure to enable the "Long File Paths" setting may lead to errors or omission of these files from the catalog.\n\nWARNING: Modifying the Windows Registry can be dangerous and may render your computer unusable. Seek assistance from your IT department or proceed with caution and create a backup before making changes.')
+        text_label = QLabel('Long file paths must be enabled for the most accurate results while using this program.\n\nBy default, Windows imposes a character limit on the length of file paths and file names, restricting them to approximately 260 characters in total. If the character limit is exceeded due to long folder and file names, some programs will not be able to view or open these files, even if they are visible in Windows File Explorer. \n\n| ------------------- File Path ------------------- || ------ File Name ------ |\n\n C:\DocumentsFolder\WorkProjectsFolder\SampleDocument.PDF\n\n| ---------- Example File Path Length: 56 Characters Long ---------- |\n\nTo overcome the 260 character limit, the "Long File Paths" option must be manually enabled in Windows. Without enabling this setting, FileReceipt, and other programs, will encounter difficulties consistently opening files within long file paths. Consequently, when creating a FileReceipt for files and folders with long paths, failure to enable the "Long File Paths" setting can lead to error messages and/or the omission of files from the catalog.\n\nWARNING: Modifying Windows can be dangerous and may render your computer unusable. Seek assistance from your IT department and proceed with caution before making changes.')
         text_label.setWordWrap(True)
         text_label.setStyleSheet("font-size: 11pt;")
         layout.addWidget(text_label)
 
         # Create a QLabel instance for the sentence with hyperlinks
-        link_label = QLabel('Visit the following pages for information and instructions on enabling Long File Paths: <a href="https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=registry">Long File Paths in Windows</a> and <a href="https://www.autodesk.com/support/technical/article/caas/sfdcarticles/sfdcarticles/The-Windows-10-default-path-length-limitation-MAX-PATH-is-256-characters.html">Enabling Long File Paths</a>.')
+        link_label = QLabel('Visit the following pages for information and instructions on enabling Long File Paths: <a href="https://support.cs.jhu.edu/wiki/Windows_Path_Length_Limit_Reached">Enabling Long File Paths</a> and <a href="https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#maximum-path-length-limitation">Long File Paths in Windows</a>.')
         link_label.setWordWrap(True)
         # Set the interaction flags on the QLabel to allow for text browser interactions - allows for clickable links
         link_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
@@ -119,7 +119,7 @@ class HashInfoMessageBox(QDialog):
         self.setWindowIcon(QIcon(icon_path))
 
         # Create a QLabel instance for the main paragraph
-        text_label = QLabel('FileReceipt records a hash value for each file, which serves as a unique identifier for the file. This hash value is generated using a specific hash algorithm.\n\nBy default, FileReceipt utilizes the SHA-256 hash algorithm to calculate the corresponding SHA-256 hash values for each file. However, other commonly used hash algorithms can be selected from the dropdown menu. Changing the hash algorithm may be useful to coordinate with external programs, processes, or individuals. In order for hash values of identical files to match, the files must be processed using the same hash algorithm. This allows for direct comparisons and matching of hash values between different systems.')
+        text_label = QLabel('FileReceipt calculates a hash value for each file that it catalogs. The hash value serves as a unique identifier for the file.\n\nBy default, FileReceipt utilizes the SHA-256 hash algorithm to calculate a SHA-256 hash value for each file. However, other commonly used hash algorithms can be selected from the dropdown menu. Changing the hash algorithm may be useful to coordinate with external programs, processes, or individuals. In order for hash values of identical files to match, the same hash algorithm must be used to compare files.')
         text_label.setWordWrap(True)
         text_label.setStyleSheet("font-size: 11pt;")
         layout.addWidget(text_label)
@@ -815,7 +815,7 @@ class MainWindow(QWidget):
             message_box.exec_()
 
         # Create a QLabel with a hyperlink
-        algorithm_link = QLabel('<a href="#">What is this?</a>')
+        algorithm_link = QLabel('<a href="#" style="text-decoration: none;">[?]</a>')
         # Don't allow external links
         algorithm_link.setOpenExternalLinks(False)
         # Set the text format to RichText
@@ -908,13 +908,14 @@ class MainWindow(QWidget):
         bottom_toolbar_layout.addWidget(self.long_paths_label)
 
         # Create a QLabel with a hyperlink to explain the meaning of "?"
-        question_label = QLabel('<a href="#">Help?</a>')
+        question_label = QLabel('<a href="#" style="text-decoration: none;">[?]</a>')
         # Don't allow external links
         question_label.setOpenExternalLinks(False)
         # Set the text format to RichText
         question_label.setTextFormat(Qt.RichText)
         # Allow text interaction for the hyperlink
         question_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        
         # Connect the hyperlink's activated signal to the show_long_paths_message_box method
         question_label.linkActivated.connect(self.show_long_paths_message_box)
 

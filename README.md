@@ -1,12 +1,15 @@
-### * Program under development. Independently validate all FileReceipt results. (8/23/2023) *
+### * Program under development. Independently validate all FileReceipt results. *
 
 # FileReceipt
-FileReceipt is a program that quickly generates a precise catalog of user-selected files, folders, and zip files. It is particularly useful for creating an inventory of files that are nested within folders, subfolders, and zip files, eliminating the need for time-consuming manual inspection and documentation.
+FileReceipt is a program that quickly generates a precise catalog of user-selected files and folders. It is particularly useful for creating an inventory of files that are nested within folders, subfolders, and zip files, eliminating the need for time-consuming manual inspection and documentation.
+
+One application for FileReceipt is resolving disputes over digital files transferred between parties. For example, the sender can create a FileReceipt before sending (or use another method to catalog information), creating a record of what they're sending. Similarly, the receiver can create a FileReceipt upon receipt to document what they've actually received. These two catalogs can be compared to ensure consistency and can be regenerated at any point to verify both parties possess identical files. [File verification](https://en.wikipedia.org/wiki/File_verification) using [cryptographic hash functions](https://en.wikipedia.org/wiki/Cryptographic_hash_function) is a [reliable and widely accepted](https://csrc.nist.gov/Projects/Hash-Functions) method to [ensure data integrity](https://learn.microsoft.com/en-us/dotnet/standard/security/ensuring-data-integrity-with-hash-codes).
+
+Click [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe) to download the latest version (8/23/2023).
 
 <p align="center">
   <img src="https://crimlawtech.com/FileReceiptScreenshot.PNG" alt="FileReceipt Screenshot" width="90%">
 </p>
-
 
 ### FileReceipt records the following information for each file:
 
@@ -36,8 +39,6 @@ FileReceipt calculates a [hash value](https://en.wikipedia.org/wiki/Cryptographi
 
 FileReceipt uses hash algorithm [SHA-256](https://en.wikipedia.org/wiki/SHA-2) by default, but can be changed to use SHA-512, SHA-1, MD5, or other common algorithms. Changing the hash algorithm may be necessary to coordinate with other programs or individuals. When comparing files, in order for the hash values of identical files to match, the same hash algorithm must be used.
 
-One application for FileReceipt is resolving disputes over digital files transferred between parties. For example, the sender can generate a FileReceipt before sending (or catalog information another way), creating a record of what they're sending. Similarly, the receiver can create a FileReceipt upon receipt to document what they've actually received. These two catalogs can be compared to ensure consistency and can be regenerated at any point to verify both parties possess identical files. [File verification](https://en.wikipedia.org/wiki/File_verification) using [cryptographic hash functions](https://en.wikipedia.org/wiki/Cryptographic_hash_function) is a reliable and [widely accepted](https://csrc.nist.gov/Projects/Hash-Functions) method to [ensure data integrity](https://learn.microsoft.com/en-us/dotnet/standard/security/ensuring-data-integrity-with-hash-codes).
-
 #### NOTE: Windows users should enable the "Long File Path" option for accurate results.
 By default, Windows imposes a limit on the length of file paths and names, restricting them to approximately 260 characters. If a file path exceeds this limit due to long folder names or file names, some programs might be unable to open the file, even if it appears visible in Windows File Explorer.
 
@@ -57,7 +58,7 @@ Visit the following pages for information and instructions on enabling "Long Fil
 
 ## Download (for most users)
 
-Download the latest release on GitHub [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe). (8/23/2023)
+Download the latest version on GitHub [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe). (8/23/2023)
 - You may receive a [warning](https://learn.microsoft.com/en-us/windows/security/operating-system-security/virus-and-threat-protection/microsoft-defender-smartscreen/) when you run the program for the first time. To bypass the warning, click 'More info' and then 'Run anyway.' The program has been submitted to Microsoft for security analysis, which should make that warning go away soon.
 
 ## Build (for developers)

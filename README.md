@@ -29,28 +29,28 @@ Click [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe) to
 ## Usage
 
 To use FileReceipt:
-1. Add files and folders to the file list box by either dragging and dropping them or clicking "Browse for Files".
-2. Once files have been added to the list, click "Generate FileReceipt" and select a location to save the FileReceipts.
+1. Add files and folders to the file list box by either dragging and dropping or clicking the "Browse for Files" button.
+2. Once files have been added to the list, click "Generate FileReceipt" and select a location to save the FileReceipt.
 3. After the processing is complete, a folder will open containing a text file and a CSV file (spreadsheet) that both contain the same catalog information in different formats.
 
-FileReceipt works [recursively](https://en.wikipedia.org/wiki/Recursion_(computer_science)), meaning if you add a folder or zip file to the list, it will search inside and catalog all the files, folders, and zip files within it. By adding the top-level folder or zip file, you can capture the entire directory structure and contents of everything nested inside.
+FileReceipt works [recursively](https://en.wikipedia.org/wiki/Recursion_(computer_science)), meaning if you add a folder or zip file to the list, it will search inside and catalog all the files, folders, and zip files within it. By adding the top-level folder or zip file, you can catalog the entire directory structure and contents of everything nested inside.
 
-FileReceipt calculates a [hash value](https://en.wikipedia.org/wiki/Cryptographic_hash_function) for each file that it processes. This value is unique to the file and can be used to demonstrate the file is the same and has not been tampered with or changed over time. Once a hash value has been calculated for a file, it can be recalculated again at any time and will remain the same. If the hash value changes on any subsequent recalculation, it means the file is not the same as when the hash value was originally calculated. 
+FileReceipt calculates a [hash value](https://en.wikipedia.org/wiki/Cryptographic_hash_function) for each file that it catalogs. This value is unique to the file and can be used to demonstrate that files are identical or have not changed over time. Once a hash value has been calculated, it can be recalculated again at any time and will remain the same as long as the file has not changed. If the hash value differs on any subsequent recalculation, it means the files are no longer the same.
 
 FileReceipt uses hash algorithm [SHA-256](https://en.wikipedia.org/wiki/SHA-2) by default, but can be changed to use SHA-512, SHA-1, MD5, or other common algorithms. Changing the hash algorithm may be necessary to coordinate with other programs or individuals. When comparing files, in order for the hash values of identical files to match, the same hash algorithm must be used.
 
-#### NOTE: Windows users should enable the "Long File Path" option for accurate results.
-By default, Windows imposes a limit on the length of file paths and names, restricting them to approximately 260 characters. If a file path exceeds this limit due to long folder names or file names, some programs might be unable to open the file, even if it appears visible in Windows File Explorer.
+#### NOTE: Enable the "Long File Path" option in Windows for most accurate results.
+By default, Windows imposes a limit on the length of file paths and names, restricting them to approximately 260 characters combined. If a file path exceeds this limit due to long folder names or file names, some programs will not be able to open the file, even if the file is visible in Windows File Explorer.
 
 | ---------------- File Path ----------------- || ----- File Name ----- |
 
 C:\DocumentsFolder\WorkProjectsFolder\SampleDocument.PDF
 
-| --------- Example File Path Length: 56 Characters Long --------- |
+| ---------- Total File Path Length: 56 Characters Long ----------- |
 
-To overcome this limitation, the "Long File Paths" option must be manually enabled in Windows. Without enabling this setting, FileReceipt, and other programs, may encounter difficulties consistently opening files within long file paths. Consequently, when creating a FileReceipt for files and folders with long paths, failure to enable the "Long File Paths" setting may lead to errors or omission of these files from the catalog.
+To overcome this limitation, the "Long File Paths" option must be manually enabled in Windows. If this option is not enabled, FileReceipt will not correctly catalog files with long file paths and may record errors or omit files from the catalog.
 
-WARNING: Modifying the Windows Registry can be dangerous and may render your computer unusable. Seek assistance from your IT department or proceed with caution and create a backup before making changes.
+WARNING: Modifying the Windows Registry can be dangerous and render your computer unusable. Seek assistance from your IT department or proceed with caution before making changes.
 
 Visit the following pages for information and instructions on enabling "Long File Paths":
    - [Long File Paths in Windows](https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=registry)
@@ -58,8 +58,8 @@ Visit the following pages for information and instructions on enabling "Long Fil
 
 ## Download (for most users)
 
-Download the latest version on GitHub [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe). (8/23/2023)
-- You may receive a [warning](https://learn.microsoft.com/en-us/windows/security/operating-system-security/virus-and-threat-protection/microsoft-defender-smartscreen/) when you run the program for the first time. To bypass the warning, click 'More info' and then 'Run anyway.' The program has been submitted to Microsoft for security analysis, which should make that warning go away soon.
+Download the latest version of FileReceipt on GitHub [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe). (8/23/2023)
+- You may receive a [warning](https://learn.microsoft.com/en-us/windows/security/operating-system-security/virus-and-threat-protection/microsoft-defender-smartscreen/) when you run the program for the first time. To bypass the warning, click 'More info' and then 'Run anyway.' The program has been submitted to Microsoft and cleared their Smart Screen security analysis, which should make the warnings go away eventually.
 
 ## Build (for developers)
 

@@ -1,9 +1,12 @@
 # FileReceipt is licensed under the GNU General Public License v3.0.
 # See the LICENSE.txt file in the project root for the full license text.
 
-# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the GNU General Public License for more details.
-# You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License
+# for more details.
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see <https://www.gnu.org/licenses/>.
 
 # Copyright (c) 2023 Brian Cummings
 # brian@crimlawtech.com
@@ -20,9 +23,18 @@ import zipfile
 from datetime import datetime
 from tzlocal import get_localzone
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QApplication, QTextEdit, QScrollArea, QDialog, QComboBox, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFileDialog, QListWidget, QMessageBox, QLabel, QDesktopWidget, QAbstractItemView, QProgressBar, QSpacerItem, QSizePolicy
-from PyQt5.QtCore import Qt, QUrl, QThread, QSize
-from PyQt5.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent, QDesktopServices, QIcon
+from PyQt5.QtWidgets import (
+    QApplication, QTextEdit, QScrollArea, QDialog, QComboBox, QWidget,
+    QPushButton, QVBoxLayout, QHBoxLayout, QFileDialog, QListWidget,
+    QMessageBox, QLabel, QDesktopWidget, QAbstractItemView, QProgressBar,
+    QSpacerItem, QSizePolicy
+)
+from PyQt5.QtCore import (
+    Qt, QUrl, QThread, QSize
+)
+from PyQt5.QtGui import (
+    QDragEnterEvent, QDragMoveEvent, QDropEvent, QDesktopServices, QIcon
+)
 
 # Set the global font
 font = QApplication.font()
@@ -45,16 +57,20 @@ HASH_ALGORITHMS = {
 }
 
 
-# This function is used to get the correct path for a resource file, regardless of whether the script is running 
-# as a standalone script or packed into a standalone executable (using tools like PyInstaller)
+# This function is used to get the correct path for a resource file,
+# regardless of whether the script is running as a standalone script
+# or packed into a standalone executable (using tools like PyInstaller)
 def resource_path(relative_path):
-    # The '_MEIPASS' attribute is set by PyInstaller, and it contains the path to the temporary folder 
+    # The '_MEIPASS' attribute is set by PyInstaller, and it contains
+    # the path to the temporary folder
     if hasattr(sys, '_MEIPASS'):
         base_path = sys._MEIPASS
     else:
-        # If the script is not running as a standalone executable, then the base path is the current directory
+        # If the script is not running as a standalone executable, then
+        #  the base path is the current directory
         base_path = os.path.abspath("")
-    # Join the base path and the relative path to get the absolute path to the resource
+    # Join the base path and the relative path to get the absolute
+    # path to the resource
     return os.path.join(base_path, relative_path)
 
 
@@ -63,28 +79,60 @@ class LongPathsMessageBox(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('Long File Paths in Windows')
-        # remove context help button in title bar
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        # Remove context help button in title bar
+        self.setWindowFlags(
+            self.windowFlags() & ~Qt.WindowContextHelpButtonHint
+        )
 
         # create layout
         layout = QVBoxLayout(self)
         self.setLayout(layout)
 
-        # set the path to the icon image - also used to package icon in pyinstaller onefile build
+        # set the path to the icon image - also used to package
+        # icon in pyinstaller onefile build
         icon_path = resource_path("fricon.png")
         # set window using path specified above
         self.setWindowIcon(QIcon(icon_path))
 
         # Create a QLabel instance for the main paragraph
-        text_label = QLabel('Long file paths must be enabled for the most accurate results while using this program.\n\nBy default, Windows imposes a character limit on the length of file paths and file names, restricting them to approximately 260 characters in total. If the character limit is exceeded due to long folder and file names, some programs will not be able to view or open these files, even if they are visible in Windows File Explorer. \n\n| ------------------- File Path ------------------- || ------ File Name ------ |\n\n C:\DocumentsFolder\WorkProjectsFolder\SampleDocument.PDF\n\n| ---------- Example File Path Length: 56 Characters Long ---------- |\n\nTo overcome the 260 character limit, the "Long File Paths" option must be manually enabled in Windows. Without enabling this setting, FileReceipt, and other programs, will encounter difficulties consistently opening files within long file paths. Consequently, when creating a FileReceipt for files and folders with long paths, failure to enable the "Long File Paths" setting can lead to error messages and/or the omission of files from the catalog.\n\nWARNING: Modifying Windows can be dangerous and may render your computer unusable. Seek assistance from your IT department and proceed with caution before making changes.')
+        text_label = QLabel(
+            'Long file paths must be enabled for accurate results while using '
+            'this program.\n\nBy default, Windows imposes a character limit '
+            'on the length of file paths and file names, restricting them to '
+            'approximately 260 characters in total. If the character limit '
+            'is exceeded due to long folder and file names, some programs '
+            'will not be able to view or open these files, even if they '
+            'are visible in Windows File Explorer.\n\n| -------------------'
+            ' File Path ------------------- || ------ File Name ------ '
+            '|\n\n C:\\DocumentsFolder\\WorkProjectsFolder\\SampleDocument.PDF'
+            '\n\n| ---------- Example File Path Length: 56 Characters Long '
+            '---------- |\n\nTo overcome the 260 character limit, the "Long '
+            'File Paths" option must be manually enabled in Windows. Without '
+            'enabling this setting, FileReceipt, and other programs, will '
+            'encounter difficulties consistently opening files within long '
+            'file paths. Consequently, when creating a FileReceipt for files '
+            'and folders with long paths, failure to enable the "Long File '
+            'Paths" setting can lead to error messages and/or the omission '
+            'of files from the catalog.\n\nWARNING: Modifying Windows can be '
+            'dangerous and may render your computer unusable. Seek assistance '
+            'from your IT department and proceed with caution before making '
+            'changes.'
+        )
+
         text_label.setWordWrap(True)
         text_label.setStyleSheet("font-size: 11pt;")
         layout.addWidget(text_label)
 
         # Create a QLabel instance for the sentence with hyperlinks
-        link_label = QLabel('Visit the following pages for information and instructions on enabling Long File Paths: <a href="https://support.cs.jhu.edu/wiki/Windows_Path_Length_Limit_Reached">Enabling Long File Paths</a> and <a href="https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#maximum-path-length-limitation">Long File Paths in Windows</a>.')
+        link_label = QLabel(
+            'Visit the following pages for information and instructions on enabling '
+            'Long File Paths: <a href="https://support.cs.jhu.edu/wiki/Windows_Path_Length_Limit_Reached">'
+            'Enabling Long File Paths</a> and <a href="https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#maximum-path-length-limitation">'
+            'Long File Paths in Windows</a>.'
+        )
         link_label.setWordWrap(True)
-        # Set the interaction flags on the QLabel to allow for text browser interactions - allows for clickable links
+        # Set the interaction flags on the QLabel to allow for text browser
+        # interactions - allows for clickable links
         link_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
         # Enable opening of external links within the QLabel
         link_label.setOpenExternalLinks(True)
@@ -100,6 +148,7 @@ class LongPathsMessageBox(QDialog):
         ok_button_layout.addWidget(ok_button)
         ok_button_layout.addStretch(1)
         layout.addLayout(ok_button_layout)
+
 
 # Message box that displays info about hash algorithm selection
 class HashInfoMessageBox(QDialog):
@@ -107,33 +156,52 @@ class HashInfoMessageBox(QDialog):
         super().__init__(parent)
         self.setWindowTitle('Hash Algorithm Selection')
         # remove context help button in title bar
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(
+            self.windowFlags() & ~Qt.WindowContextHelpButtonHint
+        )
 
         # create layout
         layout = QVBoxLayout(self)
         self.setLayout(layout)
 
-        # set the path to the icon image - also used to package icon in pyinstaller onefile build
+        # set the path to the icon image - also used to package
+        # icon in pyinstaller onefile build
         icon_path = resource_path("fricon.png")
         # set window using path specified above
         self.setWindowIcon(QIcon(icon_path))
 
         # Create a QLabel instance for the main paragraph
-        text_label = QLabel('FileReceipt calculates a hash value for each file that it catalogs. The hash value serves as a unique identifier for the file.\n\nBy default, FileReceipt utilizes the SHA-256 hash algorithm to calculate a SHA-256 hash value for each file. However, other commonly used hash algorithms can be selected from the dropdown menu. Changing the hash algorithm may be useful to coordinate with external programs, processes, or individuals. In order for hash values of identical files to match, the same hash algorithm must be used to compare files.')
+        text_label = QLabel(
+            'FileReceipt calculates a hash value for each file that it '
+            'catalogs. The hash value serves as a unique identifier for '
+            'the file.\n\n'
+            'By default, FileReceipt utilizes the SHA-256 hash algorithm '
+            'to calculate a SHA-256 hash value for each file. However, '
+            'other commonly used hash algorithms can be selected from '
+            'the dropdown menu. Changing the hash algorithm may be useful '
+            'to coordinate with external programs, processes, or '
+            'individuals. In order for hash values of identical files to '
+            'match, the same hash algorithm must be used to compare files.'
+        )
         text_label.setWordWrap(True)
         text_label.setStyleSheet("font-size: 11pt;")
         layout.addWidget(text_label)
 
         # Create a QLabel instance for the sentence with hyperlinks
-        link_label = QLabel('For more information, see these pages on <a href="https://en.wikipedia.org/wiki/File_verification">File Verification</a> and <a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function">Cryptographic Hash Functions</a>.')
+        link_label = QLabel(
+            'For more information, see these pages on '
+            '<a href="https://en.wikipedia.org/wiki/File_verification">File Verification</a> '
+            'and <a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function">'
+            'Cryptographic Hash Functions</a>.'
+        )
         link_label.setWordWrap(True)
-        # Set the interaction flags on the QLabel to allow for text browser interactions - allows for clickable links
+        # Set the interaction flags on the QLabel to allow for text browser
+        # interactions - allows for clickable links
         link_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
         # Enable opening of external links within the QLabel
         link_label.setOpenExternalLinks(True)
         link_label.setStyleSheet("font-size: 11pt;")
         layout.addWidget(link_label)
-
 
         # Create close button for window
         ok_button = QPushButton('Close')
@@ -145,33 +213,40 @@ class HashInfoMessageBox(QDialog):
         ok_button_layout.addStretch(1)
         layout.addLayout(ok_button_layout)
 
+
 # Message box that displays FileReceipt license
 class LicenseMessageBox(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('FileReceipt License: GNU GPLv3')
         # remove context help button in title bar
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(
+            self.windowFlags() & ~Qt.WindowContextHelpButtonHint
+        )
 
         # create layout
         layout = QVBoxLayout(self)
         self.setLayout(layout)
 
-        # set the path to the icon image - also used to package icon in pyinstaller onefile build
+        # set the path to the icon image - also used to package
+        # icon in pyinstaller onefile build
         icon_path = resource_path("fricon.png")
         # set window using path specified above
         self.setWindowIcon(QIcon(icon_path))
 
-        # Create a QScrollArea, make its content resizable, and add it to the layout
+        # Create a QScrollArea, make its content resizable, and
+        # add it to the layout
         scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
         layout.addWidget(scroll_area)
 
-        # Create a QWidget for the scroll content, and set it as the widget for the scroll area
+        # Create a QWidget for the scroll content, and set it as the
+        # widget for the scroll area
         scroll_content = QWidget(scroll_area)
         scroll_area.setWidget(scroll_content)
 
-        # Create a QVBoxLayout for the scroll content, and set it as the layout for the scroll content
+        # Create a QVBoxLayout for the scroll content, and set it as
+        # the layout for the scroll content
         content_layout = QVBoxLayout(scroll_content)
         scroll_content.setLayout(content_layout)
 
@@ -179,7 +254,9 @@ class LicenseMessageBox(QDialog):
         text_edit = QTextEdit()
         text_edit.setReadOnly(True)
 
-        # Get the license file path, read its content, and set it as the plain text for the QTextEdit - also used to package icon in pyinstaller onefile build
+        # Get the license file path, read its content, and set it as
+        # the plain text for the QTextEdit - also used to package
+        # icon in pyinstaller onefile build
         file_path = resource_path("LICENSE.txt")
         with open(file_path, "r", encoding="utf-8") as file:
             file_content = file.read()
@@ -190,7 +267,8 @@ class LicenseMessageBox(QDialog):
         # Add the QTextEdit to the content layout
         content_layout.addWidget(text_edit)
 
-        # Create a QPushButton labeled 'Close', connect its clicked signal to the accept slot, and add it to a layout
+        # Create a QPushButton labeled 'Close', connect its clicked
+        # signal to the accept slot, and add it to a layout
         ok_button = QPushButton('Close')
         ok_button.clicked.connect(self.accept)
         ok_button_layout = QHBoxLayout()
@@ -205,7 +283,8 @@ class LicenseMessageBox(QDialog):
         screen = QApplication.instance().primaryScreen()
         screen_geometry = screen.availableGeometry()
 
-        # Calculate the window size based on 70% of the screen size, and resize the window accordingly
+        # Calculate the window size based on 70% of the screen size,
+        # and resize the window accordingly
         window_width = int(screen_geometry.width() * 0.4)
         window_height = int(screen_geometry.height() * 0.6)
         self.resize(QSize(window_width, window_height))
@@ -213,19 +292,24 @@ class LicenseMessageBox(QDialog):
 
 # Message box that appears when file processing is complete
 class FinishedMessageBox(QDialog):
-    # Define the initialization function for the class, taking a folder path as an argument
+    # Define the initialization function for the class, taking a
+    # folder path as an argument
     def __init__(self, folder_path, parent=None):
         super().__init__(parent)
         self.setWindowTitle('FileReceipt Complete!')
         # remove context help button in title bar
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(
+            self.windowFlags() & ~Qt.WindowContextHelpButtonHint
+        )
 
-        # Create a QVBoxLayout, set its alignment to center, and set it as the layout for this dialog
+        # Create a QVBoxLayout, set its alignment to center, and set
+        # it as the layout for this dialog
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignCenter)
         self.setLayout(layout)
 
-        # set the path to the icon image - also used to package icon in pyinstaller onefile build
+        # set the path to the icon image - also used to package
+        # icon in pyinstaller onefile build
         icon_path = resource_path("fricon.png")
         # set window using path specified above
         self.setWindowIcon(QIcon(icon_path))
@@ -234,20 +318,29 @@ class FinishedMessageBox(QDialog):
         spacer_top = QSpacerItem(20, 20, QSizePolicy.Fixed, QSizePolicy.Fixed)
         layout.addItem(spacer_top)
 
-        # Create a QLabel with a message about where the file receipt was saved, set its word wrap to false, set its stylesheet, and add it to the layout
-        text_label = QLabel(f'FileReceipt saved to {os.path.normpath(folder_path)}')
+        # Create a QLabel with a message about where the file receipt was
+        # saved, set its word wrap to false, set its stylesheet, and add
+        # it to the layout
+        text_label = QLabel(
+            f'FileReceipt saved to {os.path.normpath(folder_path)}'
+        )
         text_label.setWordWrap(False)
         text_label.setStyleSheet("font-size: 11pt;")
         layout.addWidget(text_label)
 
-        # Create another spacer item with expanding vertical size policy and add it to the layout
-        spacer_bottom = QSpacerItem(20, 20, QSizePolicy.Fixed, QSizePolicy.Expanding)
+        # Create another spacer item with expanding vertical size policy and
+        # add it to the layout
+        spacer_bottom = QSpacerItem(
+            20, 20, QSizePolicy.Fixed, QSizePolicy.Expanding
+        )
         layout.addItem(spacer_bottom)
 
         # Create a QHBoxLayout for the button
         button_layout = QHBoxLayout()
 
-        # Create a QPushButton labeled 'Ok', set its size to its recommended size, connect its clicked signal to the accept slot, and add it to the button layout
+        # Create a QPushButton labeled 'Ok', set its size to its recommended
+        # size, connect its clicked signal to the accept slot, and add it
+        # to the button layout
         ok_button = QPushButton('Ok')
         ok_button.setFixedSize(ok_button.sizeHint())
         ok_button.clicked.connect(self.accept)
@@ -257,7 +350,8 @@ class FinishedMessageBox(QDialog):
         layout.addLayout(button_layout)
 
 
-# Define a new class DropZone, which inherits from QLabel. This class creates a drag and drop zone for files and folders.
+# Define a new class DropZone, which inherits from QLabel. This class
+# creates a drag and drop zone for files and folders.
 class DropZone(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -273,9 +367,10 @@ class DropZone(QLabel):
                 background: #f0f0f0;
             }
         ''')
-        # Set the text for this QLabel to guide users to drag and drop files and folders - split onto multiple lines
+        # Set the text for this QLabel to guide users to drag and drop
+        # files and folders - split onto multiple lines
         self.setText("\nDrag and Drop Files\nand Folders Here\n")
-    
+
     # Define the event handler for when a drag enters this QLabel
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
@@ -285,12 +380,14 @@ class DropZone(QLabel):
     def dragMoveEvent(self, event: QDragMoveEvent) -> None:
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
-    
+
     # Define the event handler for when a drop happens in this QLabel
     def dropEvent(self, event: QDropEvent) -> None:
         self.parent().drop_list.addItemsFromUrls(event.mimeData().urls())
 
-# Define a new class FileList, which inherits from QListWidget. This class creates a file list box for files to be processed.
+
+# Define a new class FileList, which inherits from QListWidget. This class
+# creates a file list box for files to be processed.
 class FileList(QListWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -298,7 +395,8 @@ class FileList(QListWidget):
         self.setAcceptDrops(True)
         # Initialize the file_paths as an empty set
         self.file_paths = set()
-        # Set the selection mode for this QListWidget to allow multiple items to be selected
+        # Set the selection mode for this QListWidget to allow multiple
+        # items to be selected
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         # Create a font with the desired font size
@@ -306,17 +404,16 @@ class FileList(QListWidget):
         font.setPointSize(12)  # Set your desired font size here
         self.setFont(font)  # Set the modified font to the QListWidget
 
-    
     # Define the event handler for when a drag enters this QListWidget
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
-        
+
     # Define the event handler for when a drag moves within this QListWidget
     def dragMoveEvent(self, event: QDragMoveEvent) -> None:
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
-    
+
     # Define the event handler for when a drop happens in this QListWidget
     def dropEvent(self, event: QDropEvent) -> None:
         self.addItemsFromUrls(event.mimeData().urls())
@@ -326,7 +423,9 @@ class FileList(QListWidget):
         # Get the local file paths from the URLs
         file_paths = [url.toLocalFile() for url in urls]
         # Normalize the file paths
-        normalized_paths = [os.path.normpath(file_path) for file_path in file_paths]
+        normalized_paths = [
+            os.path.normpath(file_path) for file_path in file_paths
+        ]
         # Get the new paths that are not already in self.file_paths
         new_paths = set(normalized_paths) - self.file_paths
         # Update self.file_paths with the new paths
@@ -335,6 +434,7 @@ class FileList(QListWidget):
         self.clear()
         # Add the file paths to this QListWidget
         self.addItems(list(self.file_paths))
+
 
 # Initialize the thread where file processing takes place
 class HashingThread(QThread):
@@ -352,7 +452,8 @@ class HashingThread(QThread):
         self.cancelled = False  # Flag to cancel the process
         self.hash_algorithm = hash_algorithm  # Hash algorithm to use
 
-    # count total number of files (but not wthin zip files) that will be processed and use for progress calculation
+    # count total number of files (but not wthin zip files) that will
+    # be processed and use for progress calculation
     def get_total_file_count(self, file_paths):
         total_count = 0
         for path in file_paths:
@@ -388,7 +489,7 @@ class HashingThread(QThread):
                         self.error_logs.append((os.path.normpath(file_path), error_message))
                     else:
                         # Calculate hashes for files inside the zip file
-                        hashes, errors, empty_files_zip, empty_dirs_zip = self.calculate_zip_hashes_from_path(file_path)
+                        hashes, errors, empty_files_zip, empty_dirs_zip = self.calculate_zip_hashes(file_path)
                         # Append hashes and errors to respective lists
                         self.file_hashes.extend(hashes)
                         self.error_logs.extend(errors)
@@ -411,8 +512,8 @@ class HashingThread(QThread):
                     else:
                         # Append file info to file_hashes list
                         self.file_hashes.append([os.path.normpath(file_path), hash_value, file_size])
-            
-            # Check if the file path is a directory     
+
+            # Check if the file path is a directory
             elif os.path.isdir(file_path):
                 # Calculate hashes for files inside the directory
                 hashes, errors, empty_files_folder, empty_dirs_folder = self.calculate_folder_hashes(file_path, total_files, self.current_file)
@@ -431,7 +532,7 @@ class HashingThread(QThread):
         # Emit the finished signal with the results
         self.finished.emit(self.file_hashes, self.error_logs, self.empty_files, self.empty_directories)
 
-	# Define a method to calculate the hash of a file
+    # Define a method to calculate the hash of a file
     def calculate_file_hash(self, file_path):
         # Define the size of the blocks to read from the file
         block_size = 65536
@@ -468,13 +569,14 @@ class HashingThread(QThread):
             error_message = f"Error processing file '{os.path.normpath(file_path)}': {str(e)}"
             return None, file_size, error_message
 
-    # Define a method to calculate the hashes of the files in a zip archive from its path
-    def calculate_zip_hashes_from_path(self, zip_path):
+    # Define a method to calculate the hashes of the files in a
+    # zip archive from its path
+    def calculate_zip_hashes(self, zip_path):
         try:
             # Open the zip file
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 # Calculate the hashes of the files in the zip archive
-                hashes, errors, empty_files_zip, empty_dirs_zip = self.calculate_zip_hashes(zip_ref, zip_path)
+                hashes, errors, empty_files_zip, empty_dirs_zip = self.calculate_nested_zip_hashes(zip_ref, zip_path)
                 # Get the size of the zip file
                 file_size = os.path.getsize(zip_path)
                 # Calculate the hash of the zip file itself
@@ -489,7 +591,7 @@ class HashingThread(QThread):
             return [], [(os.path.normpath(zip_path), error_message)], [], []
 
     # Define a method to calculate the hashes of the files in a zip archive
-    def calculate_zip_hashes(self, zip_ref, zip_path):
+    def calculate_nested_zip_hashes(self, zip_ref, zip_path):
         # Create empty lists for the hashes, errors, empty files, and empty directories
         file_hashes = []
         error_logs = []
@@ -527,7 +629,7 @@ class HashingThread(QThread):
                     # Open the nested zip file
                     with zipfile.ZipFile(io.BytesIO(file_data)) as nested_zip:
                         # Calculate the hashes of the files in the nested zip archive
-                        hashes, errors, empty_files_nested, empty_dirs_nested = self.calculate_zip_hashes(nested_zip, os.path.normpath(zip_path + '/' + file))
+                        hashes, errors, empty_files_nested, empty_dirs_nested = self.calculate_nested_zip_hashes(nested_zip, os.path.normpath(zip_path + '/' + file))
                         # Add the hashes, errors, empty files, and empty directories to the respective lists
                         file_hashes.extend(hashes)
                         error_logs.extend(errors)
@@ -546,7 +648,7 @@ class HashingThread(QThread):
                     file_hashes.append([os.path.normpath(zip_path + '/' + file), nested_zip_hash_value, len(file_data)])
                     # Add the file's path and error message to the list of errors
                     error_logs.append((os.path.normpath(zip_path + '/' + file), error_message))
-            
+
             # If the file is not a zip archive itself
             else:
                 # Get the size of the file
@@ -578,10 +680,10 @@ class HashingThread(QThread):
                     # If the file is empty and it's not a directory, add it to the list of empty files
                     if file_size == 0 and not file.endswith('/'):
                         empty_files_zip.append([os.path.normpath(zip_path + '/' + file), hash_value, 0])
-            
+
             # Emit a signal to update the file being processed
             self.processing_file.emit(os.path.basename(file))
-        
+
         # Return the hashes, errors, empty files, and empty directories
         return file_hashes, error_logs, empty_files_zip, empty_dirs_zip
 
@@ -620,7 +722,7 @@ class HashingThread(QThread):
                     # If the file is a zip archive
                     if file_path.lower().endswith('.zip'):
                         # Calculate the hashes of the files in the zip archive
-                        hashes, errors, empty_files_zip, empty_dirs_zip = self.calculate_zip_hashes_from_path(file_path)
+                        hashes, errors, empty_files_zip, empty_dirs_zip = self.calculate_zip_hashes(file_path)
                         # If the process has been cancelled, break from the loop
                         if self.cancelled:
                             break
@@ -629,10 +731,10 @@ class HashingThread(QThread):
                         error_logs.extend(errors)
                         empty_files_folder.extend(empty_files_zip)
                         empty_dirs_folder.extend(empty_dirs_zip)
-                        
+
                         # Emit a signal to update the file being processed
                         self.processing_file.emit(os.path.basename(file_path))
-                    
+
                     # If the file is not a zip archive
                     else:
                         try:
@@ -664,7 +766,7 @@ class HashingThread(QThread):
                                 # If there was an error, add the file's path and error to the list of errors
                                 elif error:
                                     error_logs.append((os.path.normpath(file_path), error))
-                            
+
                             # Emit a signal to update the file being processed
                             self.processing_file.emit(os.path.basename(file_path))
                         except Exception as e:
@@ -915,7 +1017,7 @@ class MainWindow(QWidget):
         question_label.setTextFormat(Qt.RichText)
         # Allow text interaction for the hyperlink
         question_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
-        
+
         # Connect the hyperlink's activated signal to the show_long_paths_message_box method
         question_label.linkActivated.connect(self.show_long_paths_message_box)
 
@@ -1034,8 +1136,6 @@ class MainWindow(QWidget):
         # Disable the algorithm dropdown during processing
         self.algorithm_dropdown.setEnabled(False)
 
-        # Get the selected hash algorithm
-        hash_algorithm = HASH_ALGORITHMS[self.algorithm_dropdown.currentText().lower()]
         # Create a list of file paths from the drop list
         file_paths = list(self.drop_list.file_paths)
         # Create a HashingThread instance for computing file hashes
@@ -1060,13 +1160,13 @@ class MainWindow(QWidget):
             # Set the 'cancelled' flag of the hashing_thread to True
             self.hashing_thread.cancelled = True
             # Display an information box stating that the generation has been cancelled
-            QMessageBox.information(self, 'FileReceipt Cancelled', f'FileReceipt generation has been cancelled.')
+            QMessageBox.information(self, 'FileReceipt Cancelled', 'FileReceipt generation has been cancelled.')
             # Enable all buttons in the GUI
             for button in self.findChildren(QPushButton):
                 button.setEnabled(True)
             # Enable all combo boxes in the GUI
             for combo_box in self.findChildren(QComboBox):
-                combo_box.setEnabled(True)     
+                combo_box.setEnabled(True)
 
         # Reset the progress bar value to 0
         self.progress_bar.setValue(0)
@@ -1285,7 +1385,7 @@ class MainWindow(QWidget):
 
             # Open the folder containing the generated FileReceipt
             self.open_folder(folder_path)
-            
+
         # Set the processing label text back to 'Processing:' and reset the progress bar value to 0
         self.processing_label.setText('Processing:')
         self.progress_bar.setValue(0)
@@ -1329,6 +1429,7 @@ class MainWindow(QWidget):
             self.hashing_thread.cancelled = True
         # Accept the close event
         event.accept()
+
 
 # If the script is run directly (and not imported as a module)
 if __name__ == '__main__':

@@ -1,11 +1,11 @@
-### * Program under development. Current version is for testing only. (8/26/2023) *
+### * Program under development. Current version is for testing only. (9/1/2023) *
 
 # FileReceipt
 FileReceipt is a program that quickly catalogs user-selected files and folders. It creates a precise inventory of files that are nested within folders, subfolders, and zip files, eliminating the need for time-consuming manual inspection and documentation. It also calculates a hash value for each file, which can help verify that files are original, identical, and unaltered.
 
 Having a record of files transferred between parties can be useful for coordination and resloving disputes. For example, the sender can create a FileReceipt before sending (or use [another method](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-filehash?view=powershell-7.3) to catalog information), creating a record of what they're sending. Similarly, the receiver can create a FileReceipt upon receipt to document what they've received. These two catalogs can be compared to ensure consistency and can be regenerated at any point to verify both parties possess identical files. [File verification](https://en.wikipedia.org/wiki/File_verification) using [cryptographic hash functions](https://en.wikipedia.org/wiki/Cryptographic_hash_function) is a [reliable and widely accepted](https://csrc.nist.gov/Projects/Hash-Functions) method to [ensure data integrity](https://learn.microsoft.com/en-us/dotnet/standard/security/ensuring-data-integrity-with-hash-codes).
 
-Click [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe) to download the latest version (8/23/2023).
+Click [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe) to download the latest version (9/1/2023).
 
 <p align="center">
   <img src="https://crimlawtech.com/FileReceiptScreenshot.PNG" alt="FileReceipt Screenshot" width="90%">
@@ -58,7 +58,7 @@ Visit the following pages for information and instructions on enabling "Long Fil
 
 ## Download (for most users)
 
-Download the latest version of FileReceipt on GitHub [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe). (8/23/2023)
+Download the latest version of FileReceipt on GitHub [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe). (9/1/2023)
 - You may receive a [warning](https://learn.microsoft.com/en-us/windows/security/operating-system-security/virus-and-threat-protection/microsoft-defender-smartscreen/) when you run the program for the first time. To bypass the warning, click 'More info' and then 'Run anyway.' The program has been submitted to Microsoft and cleared their Smart Screen security analysis, which should make the warnings go away eventually.
 
 ## Build (for developers)

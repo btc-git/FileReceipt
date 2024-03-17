@@ -20,6 +20,7 @@ import csv
 import subprocess
 import sys
 import zipfile
+import tempfile
 from datetime import datetime
 from tzlocal import get_localzone
 from PyQt5 import QtCore
@@ -569,123 +570,118 @@ class HashingThread(QThread):
             error_message = f"Error processing file '{os.path.normpath(file_path)}': {str(e)}"
             return None, file_size, error_message
 
-    # Define a method to calculate the hashes of the files in a
-    # zip archive from its path
     def calculate_zip_hashes(self, zip_path):
         try:
-            # Open the zip file
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                # Calculate the hashes of the files in the zip archive
-                hashes, errors, empty_files_zip, empty_dirs_zip = self.calculate_nested_zip_hashes(zip_ref, zip_path)
-                # Get the size of the zip file
-                file_size = os.path.getsize(zip_path)
-                # Calculate the hash of the zip file itself
-                zip_hash_value, _, _ = self.calculate_file_hash(zip_path)
-                # Create a list of the hashes starting with the hash of the zip file itself
-                file_hashes = [[os.path.normpath(zip_path), zip_hash_value, file_size]] + hashes
-                # Return the hashes, errors, and empty files and directories
-                return file_hashes, errors, empty_files_zip, empty_dirs_zip
-        except Exception as e:
-            # If an exception occurred, return an error message
-            error_message = f"Error processing zip file '{os.path.normpath(zip_path)}': {str(e)}"
-            return [], [(os.path.normpath(zip_path), error_message)], [], []
+            file_size = os.path.getsize(zip_path)
+            zip_hash_value, _, _ = self.calculate_file_hash(zip_path)
+            file_hashes = [[os.path.normpath(zip_path), zip_hash_value, file_size]]
 
-    # Define a method to calculate the hashes of the files in a zip archive
-    def calculate_nested_zip_hashes(self, zip_ref, zip_path):
-        # Create empty lists for the hashes, errors, empty files, and empty directories
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    zip_ref.extractall(temp_dir)
+                    for zipped_file in zip_ref.namelist():
+                        if zipped_file.endswith('/'):  # Skip directories
+                            continue
+                        temp_file_path = os.path.join(temp_dir, zipped_file)
+                        original_file_path = os.path.join(os.path.normpath(zip_path), zipped_file)
+                        # Check if it's a nested zip file
+                        if zipped_file.lower().endswith('.zip'):
+                            nested_hashes, nested_errors, nested_empty_files, nested_empty_dirs = self.calculate_nested_zip_hashes(temp_file_path, original_file_path)  # Pass the original path as the second argument
+                            file_hashes.extend(nested_hashes)
+                            self.error_logs.extend(nested_errors)
+                            # Append nested_empty_files and nested_empty_dirs to self.empty_files and self.empty_directories
+                            self.empty_files.extend(nested_empty_files)
+                            self.empty_directories.extend(nested_empty_dirs)
+                        else:
+                            # Process each file in the temporary directory
+                            hash_value, file_size, error_message = self.calculate_file_hash(temp_file_path)
+                            if error_message:
+                                self.error_logs.append((original_file_path, error_message))
+                            else:
+                                file_hashes.append([original_file_path, hash_value, file_size])
+
+            return file_hashes, self.error_logs, self.empty_files, self.empty_directories
+        except Exception as e:
+            error_message = f"Error processing zip file '{os.path.normpath(zip_path)}': {str(e)}"
+            self.error_logs.append((os.path.normpath(zip_path), error_message))
+            return [], self.error_logs, [], []
+
+    def calculate_nested_zip_hashes(self, zip_path, parent_zip_path):
         file_hashes = []
         error_logs = []
         empty_files_zip = []
         empty_dirs_zip = []
-
-        # Get the name of the hash algorithm in lower case
         hash_algorithm = self.hash_algorithm.lower()
 
-        # Loop over the names of the files in the zip archive
-        for file in zip_ref.namelist():
-            # If the process has been cancelled, break from the loop
-            if self.cancelled:
-                break
-
-            # Update progress for the current file within the zip
-            self.processing_file.emit(os.path.basename(file))
-
-            # Read the data of the file
-            file_data = zip_ref.read(file)
-            # If the file is a zip archive itself
-            if file.lower().endswith('.zip'):
-                # Get the size of the file
-                file_size = len(file_data)
-                # Create a hasher for the hash algorithm
-                hasher = getattr(hashlib, hash_algorithm)()
-                # Update the hasher with the data from the file
-                hasher.update(file_data)
-                # Calculate the hash of the file
-                hash_value = hasher.hexdigest()
-                # Add the file's path, hash, and size to the list of hashes
-                file_hashes.append([os.path.normpath(zip_path + '/' + file), hash_value, file_size])
-
-                try:
-                    # Open the nested zip file
-                    with zipfile.ZipFile(io.BytesIO(file_data)) as nested_zip:
-                        # Calculate the hashes of the files in the nested zip archive
-                        hashes, errors, empty_files_nested, empty_dirs_nested = self.calculate_nested_zip_hashes(nested_zip, os.path.normpath(zip_path + '/' + file))
-                        # Add the hashes, errors, empty files, and empty directories to the respective lists
-                        file_hashes.extend(hashes)
-                        error_logs.extend(errors)
-                        empty_files_zip.extend(empty_files_nested)
-                        empty_dirs_zip.extend(empty_dirs_nested)
-                except Exception as e:
-                    # If an exception occurred, create an error message
-                    error_message = f"Error processing nested zip file '{os.path.normpath(zip_path + '/' + file)}': {str(e)}"
-                    # Create a hasher for the hash algorithm
-                    nested_zip_hasher = getattr(hashlib, hash_algorithm)()
-                    # Update the hasher with the data from the file
-                    nested_zip_hasher.update(file_data)
-                    # Calculate the hash of the file
-                    nested_zip_hash_value = nested_zip_hasher.hexdigest()
-                    # Add the file's path, hash, and size to the list of hashes
-                    file_hashes.append([os.path.normpath(zip_path + '/' + file), nested_zip_hash_value, len(file_data)])
-                    # Add the file's path and error message to the list of errors
-                    error_logs.append((os.path.normpath(zip_path + '/' + file), error_message))
-
-            # If the file is not a zip archive itself
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            # Check the number of files in the nested zip before iterating over them
+            if len(zip_ref.namelist()) > 1000:
+                error_message = f"Nested zip file '{parent_zip_path}' not processed: contains more than 1000 files"
+                error_logs.append((parent_zip_path, error_message))
             else:
-                # Get the size of the file
-                file_size = len(file_data)
-                # If the file is a directory
-                if file.endswith('/'):
-                    # Check if the directory is empty
-                    is_directory_empty = not any(entry for entry in zip_ref.namelist() if entry.startswith(file) and entry != file)
-                    # Use "--FOLDER--" as the hash value
-                    hash_value = "--FOLDER--"
-                    # Use "N/A" as the file size
-                    file_size = "N/A"
-                    # If the directory is empty, add it to the list of empty directories
-                    if is_directory_empty:
-                        empty_dirs_zip.append([os.path.normpath(zip_path + '/' + file), hash_value, file_size])
-                    # Add the directory's path, hash value, and file size to the list of hashes
-                    file_hashes.append([os.path.normpath(zip_path + '/' + file), hash_value, file_size])
-                # If the file is not a directory
-                else:
-                    # Create a hasher for the hash algorithm
-                    hasher = getattr(hashlib, hash_algorithm)()
-                    # Update the hasher with the data from the file
-                    hasher.update(file_data)
-                    # Calculate the hash of the file
-                    hash_value = hasher.hexdigest()
-                    # Add the file's path, hash, and size to the list of hashes
-                    file_hashes.append([os.path.normpath(zip_path + '/' + file), hash_value, file_size])
+                for file in zip_ref.namelist():
+                    if self.cancelled:
+                        break
+                    self.processing_file.emit(os.path.basename(file))
 
-                    # If the file is empty and it's not a directory, add it to the list of empty files
-                    if file_size == 0 and not file.endswith('/'):
-                        empty_files_zip.append([os.path.normpath(zip_path + '/' + file), hash_value, 0])
+                    # Construct the original nested file path correctly
+                    nested_file_path = os.path.normpath(file).replace("\\", "/")
+                    original_nested_file_path = os.path.join(parent_zip_path, nested_file_path)
 
-            # Emit a signal to update the file being processed
-            self.processing_file.emit(os.path.basename(file))
+                    if file.lower().endswith('.zip') and not file.endswith('/'):
+                        try:
+                            with tempfile.TemporaryDirectory() as temp_dir:
+                                nested_zip_full_path = os.path.join(temp_dir, os.path.basename(file))
+                                zip_ref.extract(file, temp_dir)
 
-        # Return the hashes, errors, empty files, and empty directories
+                                with zipfile.ZipFile(nested_zip_full_path, 'r') as nested_zip:
+                                    # Process each file within the nested zip
+                                    for nested_file in nested_zip.namelist():
+                                        if nested_file.endswith('/'):  # Skip directories
+                                            continue
+                                        nested_file_full_path = os.path.join(temp_dir, nested_file)
+                                        hash_value, file_size, error_message = self.calculate_file_hash(nested_file_full_path)
+                                        if error_message:
+                                            error_logs.append((original_nested_file_path, error_message))
+                                        else:
+                                            file_hashes.append([original_nested_file_path, hash_value, file_size])
+
+                        except Exception as e:
+                            error_message = f"Error processing nested zip file '{original_nested_file_path}': {str(e)}"
+                            error_logs.append((original_nested_file_path, error_message))
+
+                    elif file.endswith('/') and not file.lower().endswith('.zip/'):
+                        # Check if it's a regular empty directory
+                        is_directory_empty = not any(
+                            entry for entry in zip_ref.namelist() if entry.startswith(file) and entry != file
+                        )
+                        dir_path = os.path.normpath(zip_path + '/' + file)
+
+                        if is_directory_empty:
+                            # Only add it as an empty directory if it's not part of a zip directory structure
+                            if not any(zip_dir.startswith(file) for zip_dir in zip_ref.namelist()):
+                                empty_dirs_zip.append([dir_path, "--FOLDER--", "N/A"])
+                        else:
+                            file_hashes.append([dir_path, "--FOLDER--", "N/A"])
+                    else:
+                        # This section handles non-zip files
+                        file_data = zip_ref.read(file)  # Ensure file_data is defined here
+                        file_size = len(file_data)
+                        hasher = getattr(hashlib, hash_algorithm)()
+                        hasher.update(file_data)
+                        hash_value = hasher.hexdigest()
+                        file_hashes.append([original_nested_file_path, hash_value, file_size])
+                        if file_size == 0:
+                            empty_files_zip.append([original_nested_file_path, hash_value, 0])
+
+                    self.processing_file.emit(os.path.basename(file))
+
         return file_hashes, error_logs, empty_files_zip, empty_dirs_zip
+
+
+
+
+
 
     # Define a method to calculate the hashes of the files in a folder
     def calculate_folder_hashes(self, folder_path, total_files, current_file):
@@ -1205,6 +1201,7 @@ class MainWindow(QWidget):
 
     # This function is used to update the processing label with the name of the file being processed
     def update_processing_label(self, file_name):
+        # Update the processing label with file name and processed files count
         self.processing_label.setText(f'Processing: {file_name}')
 
     # This function is used to process the hash results of the files
@@ -1241,9 +1238,11 @@ class MainWindow(QWidget):
 
                 # Write the errors section header to the text file
                 file.write("Errors:\n")
-                if error_logs:
+                # Deduplicate the error logs by converting them to a set and back to a list
+                unique_errors = list(set(error_logs))
+                if unique_errors:
                     # Write each error to the text file
-                    for error in error_logs:
+                    for error in unique_errors:
                         # Use os.path.normpath() to ensure the paths are displayed correctly
                         file.write(f'{os.path.normpath(error[0])}: {error[1]}\n')
                         file.write('\n')
@@ -1317,9 +1316,11 @@ class MainWindow(QWidget):
 
                 # Write the errors section header to the CSV file
                 writer.writerow(["Errors:"])
-                if error_logs:
+                # Deduplicate the error logs by converting them to a set and back to a list
+                unique_errors = list(set(error_logs))
+                if unique_errors:
                     # Write each error as a row in the CSV file
-                    for error in error_logs:
+                    for error in unique_errors:
                         # Use os.path.normpath() to ensure the paths are displayed correctly
                         writer.writerow([os.path.normpath(error[0]), error[1]])
                         writer.writerow([])

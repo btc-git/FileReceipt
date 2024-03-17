@@ -1,4 +1,4 @@
-### * Program under development. Current version is for testing only. (9/1/2023) *
+### * Program under development. Current version is for testing only. (3/17/2024) *
 
 # FileReceipt
 FileReceipt is a program that quickly catalogs user-selected files and folders. It creates a precise inventory of files that are nested within folders, subfolders, and zip files, eliminating the need for time-consuming manual inspection and documentation. It also calculates a hash value for each file, which can help verify that files are original, identical, and unaltered.
@@ -58,7 +58,7 @@ Visit the following pages for information and instructions on enabling "Long Fil
 
 ## Download (for most users)
 
-Download the latest version of FileReceipt on GitHub [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe). (9/1/2023)
+Download the latest version of FileReceipt on GitHub [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe). (3/17/2023)
 - You may receive a [warning](https://learn.microsoft.com/en-us/windows/security/operating-system-security/virus-and-threat-protection/microsoft-defender-smartscreen/) when you run the program for the first time. To bypass the warning, click 'More info' and then 'Run anyway.' The program has been submitted to Microsoft and cleared their Smart Screen security analysis, which should make the warnings go away eventually.
 
 ## Build (for developers)
@@ -85,6 +85,9 @@ Source Code: All FileReceipt source code and files are on the GitHub [repository
      pyinstaller --onefile --windowed --icon=C:\FileReceipt\fricon.ico --add-data "fricon.png;." --add-data "license.txt;." FileReceipt.py
      ```
    Note: Replace `C:\FileReceipt\fricon.ico` with the actual path to your fricon.ico file.
+
+## Update History
+3/17/2024 - Changed zip file processing to utilize disk space (temp file) instead of RAM to avoid crashing when processing very large files. Added a threshold preventing recursive cataloging of zip files containing more than 1000 files.
 
 ## License
 FileReceipt is licensed under the GNU General Public License v3.0.

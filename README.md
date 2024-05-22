@@ -5,7 +5,7 @@ FileReceipt is a program that quickly catalogs user-selected files and folders. 
 
 Having a record of files transferred between parties can be useful for coordination and resloving disputes. For example, the sender can create a FileReceipt before sending (or use [another method](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-filehash?view=powershell-7.3) to catalog information), creating a record of what they're sending. Similarly, the receiver can create a FileReceipt upon receipt to document what they've received. These two catalogs can be compared to ensure consistency and can be regenerated at any point to verify both parties possess identical files. [File verification](https://en.wikipedia.org/wiki/File_verification) using [cryptographic hash functions](https://en.wikipedia.org/wiki/Cryptographic_hash_function) is a [reliable and widely accepted](https://csrc.nist.gov/Projects/Hash-Functions) method to [ensure data integrity](https://learn.microsoft.com/en-us/dotnet/standard/security/ensuring-data-integrity-with-hash-codes).
 
-Click [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe) to download the latest version (9/1/2023).
+Click [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe) to download the latest version (3/17/2024).
 
 <p align="center">
   <img src="https://crimlawtech.com/FileReceiptScreenshot.PNG" alt="FileReceipt Screenshot" width="90%">

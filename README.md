@@ -31,7 +31,7 @@ Click [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe) to
 To use FileReceipt:
 1. Add files and folders to the file list box by either dragging and dropping or clicking the "Browse for Files" button.
 2. Once files have been added to the list, click "Generate FileReceipt" and select a location to save the FileReceipt.
-3. After the processing is complete, a folder will open containing a text file and a CSV file (spreadsheet) that both contain the same catalog information in different formats.
+3. After the processing is complete, the folder where your FileReceipt was saved will open.
 
 FileReceipt works [recursively](https://en.wikipedia.org/wiki/Recursion_(computer_science)), meaning if you add a folder or zip file to the list, it will search inside and catalog all the files, folders, and zip files within it. By adding the top-level folder or zip file, you can catalog the entire directory structure and contents of everything nested inside.
 
@@ -88,6 +88,8 @@ Source Code: All FileReceipt source code and files are on the GitHub [repository
 
 ## Update History
 3/17/2024 - Changed zip file processing to utilize disk space (temp file) instead of RAM to avoid crashing when processing very large files. Added a threshold preventing recursive cataloging of zip files containing more than 1000 files.
+
+9/20/2024 - Removed text file output.
 
 ## License
 FileReceipt is licensed under the GNU General Public License v3.0.

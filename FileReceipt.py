@@ -1208,16 +1208,10 @@ class MainWindow(QWidget):
     def process_hash_results(self, file_hashes, error_logs, empty_files, empty_dirs):
         # If the hashing_thread was not cancelled
         if not self.hashing_thread.cancelled:
-            # Generate a unique folder_name based on the current timestamp
-            folder_name = f'FileReceipt-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-            # Create the full path for the new folder
-            folder_path = os.path.join(self.folder_path, folder_name)
-            # Create the new folder (and any intermediate directories) if they don't already exist
-            os.makedirs(folder_path, exist_ok=True)
-
-            # Define the paths for the txt and csv files that will be created
-            txt_file_path = os.path.join(folder_path, f'{folder_name}.txt')
-            csv_file_path = os.path.join(folder_path, f'{folder_name}.csv')
+            # Generate a unique file name based on the current timestamp
+            file_name = f'FileReceipt-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.csv'
+            # Create the full path for the CSV file
+            csv_file_path = os.path.join(self.folder_path, file_name)
 
             # Sort the file_hashes list by the first element of each tuple (the file path)
             file_hashes.sort(key=lambda x: x[0])
@@ -1225,83 +1219,7 @@ class MainWindow(QWidget):
             # Get the selected hash algorithm
             hash_algorithm = self.algorithm_dropdown.currentText()
 
-            # write catalog information to csv file - added io.open and encoding to address emojis in file paths
-            with io.open(txt_file_path, 'w', encoding='utf-8') as file:
-                # Write the catalog header to the text file
-                file.write(f"Catalog of selected files (Path, File Hash [{hash_algorithm}], File Size [bytes]):\n")
-
-                # Write the file information for each file in the file_hashes list
-                for hash_info in file_hashes:
-                    file.write(f'{os.path.normpath(hash_info[0])}: {hash_info[1]} Size: {hash_info[2]} bytes\n')
-                # Add extra new lines for separation
-                file.write("\n" * 3)
-
-                # Write the errors section header to the text file
-                file.write("Errors:\n")
-                # Deduplicate the error logs by converting them to a set and back to a list
-                unique_errors = list(set(error_logs))
-                if unique_errors:
-                    # Write each error to the text file
-                    for error in unique_errors:
-                        # Use os.path.normpath() to ensure the paths are displayed correctly
-                        file.write(f'{os.path.normpath(error[0])}: {error[1]}\n')
-                        file.write('\n')
-                else:
-                    # Write a message indicating no errors were recorded
-                    file.write("No errors were recorded.\n")
-
-                # Add a new line for separation
-                file.write('\n')
-
-                # Write the empty files section header to the text file
-                file.write("Empty files:\n")
-                if empty_files:
-                    # Write the information of each empty file to the text file
-                    for file_info in empty_files:
-                        file.write(f'{os.path.normpath(file_info[0])}: {file_info[1]} Size: {file_info[2]} bytes\n')
-                    # Add a new line for separation
-                    file.write('\n')
-                else:
-                    # Write a message indicating no empty files were found
-                    file.write("No empty files were found.\n")
-                    file.write('\n')
-
-                # Write the empty directories section header to the text file
-                file.write("Empty folders:\n")
-                if empty_dirs:
-                    # Write the information of each empty directory to the text file
-                    for dir_info in empty_dirs:
-                        file.write(f'{os.path.normpath(dir_info[0])}: {dir_info[1]} Size: {dir_info[2]}\n')
-                else:
-                    # Write a message indicating no empty directories were found
-                    file.write("No empty folders were found.\n")
-
-                # Find duplicate files based on their hashes
-                duplicates = self.find_duplicates(file_hashes)
-                # Write the duplicates section header to the text file
-                file.write("\nFiles with matching hashes:\n")
-                if duplicates:
-                    # Write the information of each group of duplicate files to the text file
-                    for duplicate_group in duplicates:
-                        for duplicate in duplicate_group:
-                            file.write(f'{os.path.normpath(duplicate[0])}: {duplicate[1]} Size: {duplicate[2]} bytes\n')
-                        # Add a new line for separation between duplicate groups
-                        file.write('\n')
-                else:
-                    # Write a message indicating no duplicates were found
-                    file.write("No duplicates were found.\n")
-
-                # Add extra new lines for separation
-                file.write("\n\n")
-
-                # Get and format local timezone
-                local_timezone = get_localzone()
-                current_time = datetime.now(local_timezone).strftime("%Y-%m-%d %H:%M:%S %Z")
-
-                file.write("Date/Time Generated:\n")
-                file.write(current_time + "\n")
-
-            # write catalog information to csv file
+            # Write catalog information to csv file
             with io.open(csv_file_path, 'w', newline='', encoding='utf-8') as file:
                 writer = csv.writer(file)
 
@@ -1355,6 +1273,7 @@ class MainWindow(QWidget):
 
                 # Write the duplicates section header to the CSV file
                 writer.writerow(["Files with matching hashes:"])
+                duplicates = self.find_duplicates(file_hashes)
                 if duplicates:
                     # Write the information of each group of duplicate files as rows in the CSV file
                     for duplicate_group in duplicates:
@@ -1378,14 +1297,12 @@ class MainWindow(QWidget):
             # Set the progress bar value to 100% to indicate completion
             self.progress_bar.setValue(100)
 
-            # Normalize the folder path
-            folder_path = os.path.normpath(folder_path)
-            # Show a message box indicating the completion and providing the folder path
-            message_box = FinishedMessageBox(folder_path)
+            # Show a message box indicating the completion and providing the CSV file path
+            message_box = FinishedMessageBox(csv_file_path)
             message_box.exec_()
 
-            # Open the folder containing the generated FileReceipt
-            self.open_folder(folder_path)
+            # Open the folder containing the generated CSV file and select the file
+            self.open_folder(csv_file_path)
 
         # Set the processing label text back to 'Processing:' and reset the progress bar value to 0
         self.processing_label.setText('Processing:')
@@ -1410,17 +1327,18 @@ class MainWindow(QWidget):
         # Return a list of all hash_info lists that have more than 1 element (indicating a duplicate file)
         return [duplicate_group for duplicate_group in hash_counts.values() if len(duplicate_group) > 1]
 
-    # This function is used to open the specified folder
-    def open_folder(self, folder_path):
+    # This function is used to open the specified folder and highlight/select the file
+    def open_folder(self, file_path):
         # Get the operating system name
         system = platform.system()
-        # Open the folder using the appropriate command based on the operating system
+        # Open the folder and select the file using the appropriate command based on the operating system
         if system == 'Windows':
-            os.startfile(folder_path)
+            # Use the /select, argument to open the folder with the file selected in Windows
+            subprocess.Popen(f'explorer /select,"{os.path.normpath(file_path)}"')
         elif system == 'Darwin':
-            subprocess.Popen(['open', folder_path])
+            subprocess.Popen(['open', '-R', file_path])
         elif system == 'Linux':
-            subprocess.Popen(['xdg-open', folder_path])
+            subprocess.Popen(['xdg-open', file_path])
 
     # This function is called when the window is closed
     def closeEvent(self, event):

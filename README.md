@@ -81,10 +81,10 @@ Source Code: All FileReceipt source code and files are on the GitHub [repository
    - Open a command prompt or terminal.
    - Navigate to the directory where you have the FileReceipt.py and other repository files located.
    - Run the following command to build the standalone executable using PyInstaller:
+     ```     
+     pyinstaller --onefile --windowed --icon="C:\FileReceipt\fricon.ico" --add-data "C:\FileReceipt\fricon.png;." --add-data "C:\FileReceipt\fricon.ico;." --add-data "C:\FileReceipt\license.txt;." FileReceipt.py
      ```
-     pyinstaller --onefile --windowed --icon=C:\FileReceipt\fricon.ico --add-data "fricon.png;." --add-data "license.txt;." FileReceipt.py
-     ```
-   Note: Replace `C:\FileReceipt\fricon.ico` with the actual path to your fricon.ico file.
+   Note: Replace `C:\FileReceipt\` with the correct path to where these files are located on your computer.
 
 ## Update History
 3/17/2024 - Changed zip file processing to utilize disk space (temp file) instead of RAM to avoid crashing when processing very large files. Added a threshold preventing recursive cataloging of zip files containing more than 1000 files.

@@ -91,7 +91,7 @@ class LongPathsMessageBox(QDialog):
 
         # set the path to the icon image - also used to package
         # icon in pyinstaller onefile build
-        icon_path = resource_path("fricon.png")
+        icon_path = resource_path("fricon.ico")
         # set window using path specified above
         self.setWindowIcon(QIcon(icon_path))
 
@@ -167,7 +167,7 @@ class HashInfoMessageBox(QDialog):
 
         # set the path to the icon image - also used to package
         # icon in pyinstaller onefile build
-        icon_path = resource_path("fricon.png")
+        icon_path = resource_path("fricon.ico")
         # set window using path specified above
         self.setWindowIcon(QIcon(icon_path))
 
@@ -231,7 +231,7 @@ class LicenseMessageBox(QDialog):
 
         # set the path to the icon image - also used to package
         # icon in pyinstaller onefile build
-        icon_path = resource_path("fricon.png")
+        icon_path = resource_path("fricon.ico")
         # set window using path specified above
         self.setWindowIcon(QIcon(icon_path))
 
@@ -311,7 +311,7 @@ class FinishedMessageBox(QDialog):
 
         # set the path to the icon image - also used to package
         # icon in pyinstaller onefile build
-        icon_path = resource_path("fricon.png")
+        icon_path = resource_path("fricon.ico")
         # set window using path specified above
         self.setWindowIcon(QIcon(icon_path))
 
@@ -813,7 +813,7 @@ class MainWindow(QWidget):
         self.resize(desired_width, desired_height)
 
         # Path to the window icon
-        icon_path = resource_path("fricon.png")
+        icon_path = resource_path("fricon.ico")
         # Set the window icon
         self.setWindowIcon(QIcon(icon_path))
 

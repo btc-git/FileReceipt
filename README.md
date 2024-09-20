@@ -42,7 +42,7 @@ FileReceipt uses hash algorithm [SHA-256](https://en.wikipedia.org/wiki/SHA-2) b
 #### NOTE: Enable the "Long File Path" option in Windows for most accurate results.
 By default, Windows imposes a limit on the length of file paths and names, restricting them to approximately 260 characters combined. If a file path exceeds this limit due to long folder names or file names, some programs will not be able to open the file, even if the file is visible in Windows File Explorer.
 
-| ---------------- File Path ----------------- || ----- File Name ----- |
+| ---------------- Folder Path ----------------- || ----- File Name ----- |
 
 C:\DocumentsFolder\WorkProjectsFolder\SampleDocument.PDF
 

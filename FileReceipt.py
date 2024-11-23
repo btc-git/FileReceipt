@@ -21,11 +21,12 @@ import subprocess
 import sys
 import zipfile
 import tempfile
+import shutil
 from datetime import datetime
 from tzlocal import get_localzone
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
-    QApplication, QTextEdit, QScrollArea, QDialog, QComboBox, QWidget,
+    QApplication, QCheckBox, QTextEdit, QScrollArea, QDialog, QComboBox, QWidget,
     QPushButton, QVBoxLayout, QHBoxLayout, QFileDialog, QListWidget,
     QMessageBox, QLabel, QDesktopWidget, QAbstractItemView, QProgressBar,
     QSpacerItem, QSizePolicy
@@ -209,6 +210,46 @@ class HashInfoMessageBox(QDialog):
         ok_button.clicked.connect(self.accept)
         ok_button_layout = QHBoxLayout()
         # add stretchable space on right and left of OK button
+        ok_button_layout.addStretch(1)
+        ok_button_layout.addWidget(ok_button)
+        ok_button_layout.addStretch(1)
+        layout.addLayout(ok_button_layout)
+
+
+# Message box that displays info about the 1,000 File Recursive Limit
+class ThresholdInfoMessageBox(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('1,000 File Recursive Limit Information')
+        # Remove context help button in title bar
+        self.setWindowFlags(
+            self.windowFlags() & ~Qt.WindowContextHelpButtonHint
+        )
+
+        # Create layout
+        layout = QVBoxLayout(self)
+        self.setLayout(layout)
+
+        # Set the path to the icon image
+        icon_path = resource_path("fricon.ico")
+        self.setWindowIcon(QIcon(icon_path))
+
+        # Create a QLabel instance for the main paragraph
+        text_label = QLabel(
+            'The "1,000 File Recursive Limit" checkbox limits recursive zip file processing to those with 1,000 files or less.\n\n'
+            'When checked, zip archives with more than 1,000 files will be skipped to prevent '
+            'excessive hash calculations and logging. The zip file itself will still be added to the catalog. Uncheck this option if you '
+            'want all zip files to be recursively cataloged regardless of the number of files inside. Note that processing zip files with 1,000+ files inside may take a long time.'
+        )
+        text_label.setWordWrap(True)
+        text_label.setStyleSheet("font-size: 11pt;")
+        layout.addWidget(text_label)
+
+        # Create close button for window
+        ok_button = QPushButton('Close')
+        ok_button.clicked.connect(self.accept)
+        ok_button_layout = QHBoxLayout()
+        # Add stretchable space on right and left of OK button
         ok_button_layout.addStretch(1)
         ok_button_layout.addWidget(ok_button)
         ok_button_layout.addStretch(1)
@@ -443,13 +484,14 @@ class HashingThread(QThread):
     processing_file = QtCore.pyqtSignal(str)
     finished = QtCore.pyqtSignal(list, list, list, list)
 
-    def __init__(self, file_paths, hash_algorithm):
+    def __init__(self, file_paths, hash_algorithm, use_1k_threshold):
         super().__init__()
         self.file_paths = file_paths  # File paths to process
         self.file_hashes = []  # Store file hashes
         self.error_logs = []  # Store any errors during the process
         self.empty_files = []  # Store info of empty files
         self.empty_directories = []  # Store info of empty directories
+        self.use_1k_threshold = use_1k_threshold # Flag to use 1k threshold
         self.cancelled = False  # Flag to cancel the process
         self.hash_algorithm = hash_algorithm  # Hash algorithm to use
 
@@ -527,8 +569,19 @@ class HashingThread(QThread):
             # If the process hasn't been cancelled, calculate and emit the progress
             if not self.cancelled:
                 progress_value = int((self.current_file / total_files) * 100)
-                self.progress.emit(progress_value)
-                self.processing_file.emit(os.path.basename(file_path))
+            # Connect signals in start_processing
+            self.hashing_thread.progress.connect(self.update_progress)
+            self.hashing_thread.processing_file.connect(self.update_processing_label)
+
+            # Ensure your update functions like update_progress and update_processing_label look like:
+            @QtCore.pyqtSlot(int)
+            def update_progress(self, value):
+                self.progress_bar.setValue(value)
+
+            @QtCore.pyqtSlot(str)
+            def update_processing_label(self, file_name):
+                self.processing_label.setText(f'Processing: {file_name}')
+
 
         # Emit the finished signal with the results
         self.finished.emit(self.file_hashes, self.error_logs, self.empty_files, self.empty_directories)
@@ -536,6 +589,7 @@ class HashingThread(QThread):
     # Define a method to calculate the hash of a file
     def calculate_file_hash(self, file_path):
         # Define the size of the blocks to read from the file
+        file_size = None  # Initialize to avoid UnboundLocalError
         block_size = 65536
         # Get the name of the hash algorithm in lower case
         hash_algorithm = self.hash_algorithm.lower()
@@ -568,7 +622,7 @@ class HashingThread(QThread):
         except Exception as e:
             # If an exception occurred, return none for the hash and the error message
             error_message = f"Error processing file '{os.path.normpath(file_path)}': {str(e)}"
-            return None, file_size, error_message
+            return None, file_size if file_size is not None else 0, error_message
 
     def calculate_zip_hashes(self, zip_path):
         try:
@@ -717,16 +771,32 @@ class HashingThread(QThread):
                     file_path = os.path.join(root, file)
                     # If the file is a zip archive
                     if file_path.lower().endswith('.zip'):
-                        # Calculate the hashes of the files in the zip archive
-                        hashes, errors, empty_files_zip, empty_dirs_zip = self.calculate_zip_hashes(file_path)
-                        # If the process has been cancelled, break from the loop
-                        if self.cancelled:
-                            break
-                        # Add the hashes, errors, empty files, and empty directories to the respective lists
-                        file_hashes.extend(hashes)
-                        error_logs.extend(errors)
-                        empty_files_folder.extend(empty_files_zip)
-                        empty_dirs_folder.extend(empty_dirs_zip)
+                        # If the 1k threshold is enabled, count files within the zip and skip if more than 1000
+                        if self.use_1k_threshold:
+                            try:
+                                with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                                    if len(zip_ref.namelist()) > 1000:
+                                        print(f"Skipping {file_path} due to 1k file threshold.")
+                                        continue
+                            except Exception as e:
+                                self.error_logs.append((os.path.normpath(file_path), f"Error reading zip file '{file_path}': {str(e)}"))
+                                continue
+
+                        # Calculate the hash of the zip file
+                        hash_value, file_size, error_message = self.calculate_file_hash(file_path)
+                        # Handle errors during hash calculation
+                        if error_message:
+                            # Append error to error logs
+                            self.error_logs.append((os.path.normpath(file_path), error_message))
+                        else:
+                            # Calculate hashes for files inside the zip file
+                            hashes, errors, empty_files_zip, empty_dirs_zip = self.calculate_zip_hashes(file_path)
+                            # Append hashes and errors to respective lists
+                            self.file_hashes.extend(hashes)
+                            self.error_logs.extend(errors)
+                            self.empty_files.extend(empty_files_zip)
+                            self.empty_directories.extend(empty_dirs_zip)
+
 
                         # Emit a signal to update the file being processed
                         self.processing_file.emit(os.path.basename(file_path))
@@ -884,6 +954,9 @@ class MainWindow(QWidget):
                 background-color: #32CD32;
             }
         ''')
+
+
+
         # Connect the button's clicked signal to the toggle_processing method
         self.run_button.clicked.connect(self.toggle_processing)
         # Add the 'Generate FileReceipt' button to the right layout
@@ -943,6 +1016,44 @@ class MainWindow(QWidget):
 
         # Save a reference to the algorithm dropdown
         self.algorithm_dropdown = algorithm_dropdown
+
+
+
+
+        # Create the '1k Threshold' checkbox
+        self.threshold_checkbox = QCheckBox("1,000 File Recursive Limit")
+        # Set the checkbox to be checked by default
+        self.threshold_checkbox.setChecked(True)
+        self.threshold_checkbox.setToolTip("Toggle to control recursive zip processing for more than 1000 files.")
+
+        # Create a QLabel with a hyperlink for the threshold checkbox
+        threshold_link = QLabel('<a href="#" style="text-decoration: none;">[?]</a>')
+        # Don't allow external links
+        threshold_link.setOpenExternalLinks(False)
+        # Set the text format to RichText
+        threshold_link.setTextFormat(Qt.RichText)
+        # Allow text interaction for the hyperlink
+        threshold_link.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        # Set fixed size policy for the hyperlink
+        threshold_link.setFixedSize(threshold_link.sizeHint())
+        threshold_link.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+
+        # Connect the hyperlink's activated signal to the new ThresholdInfoMessageBox class
+        threshold_link.linkActivated.connect(lambda: ThresholdInfoMessageBox(self).exec_())
+
+        # Create a QHBoxLayout for the threshold checkbox and its hyperlink
+        threshold_layout = QHBoxLayout()
+        # Add the threshold checkbox and hyperlink to the layout
+        threshold_layout.addWidget(self.threshold_checkbox)
+        threshold_layout.addWidget(threshold_link)
+        # Add stretch to the layout
+        threshold_layout.addStretch(1)
+
+        # Add the threshold layout to the right layout
+        right_layout.addLayout(threshold_layout)
+
+
+
 
         # Create a QVBoxLayout for the progress bar and its label
         progress_layout = QVBoxLayout()
@@ -1034,6 +1145,12 @@ class MainWindow(QWidget):
         # Add the version label to the bottom toolbar layout
         bottom_toolbar_layout.addWidget(version_label)
 
+    # Function to update the use_1k_threshold flag based on checkbox state
+    def update_threshold_state(self, state):
+        # Update the use_1k_threshold flag based on checkbox state
+        self.use_1k_threshold = state == Qt.Checked
+
+
     # Function to show long paths information message box
     def show_long_paths_message_box(self):
         message_box = LongPathsMessageBox()
@@ -1041,11 +1158,19 @@ class MainWindow(QWidget):
 
     # This function is used to update the long file paths label text based on the current system settings
     def update_long_paths_label(self):
-        long_paths_enabled = self.check_long_paths_enabled()
-        if long_paths_enabled:
+        try:
+            long_paths_enabled = self.check_long_paths_enabled()
+        except subprocess.CalledProcessError as e:
+            long_paths_enabled = None
+            print(f"Error checking long paths: {e}")
+
+        if long_paths_enabled is None:
+            self.long_paths_label.setText("Long file paths: Check failed")
+        elif long_paths_enabled:
             self.long_paths_label.setText("Long file paths: Enabled")
         else:
             self.long_paths_label.setText("Long file paths: NOT Enabled!")
+
 
     # This function is used to check if long file paths are enabled on the system
     def check_long_paths_enabled(self):
@@ -1155,6 +1280,7 @@ class MainWindow(QWidget):
         if self.hashing_thread:
             # Set the 'cancelled' flag of the hashing_thread to True
             self.hashing_thread.cancelled = True
+            self.hashing_thread.wait()  # Ensure the thread completes gracefully
             # Display an information box stating that the generation has been cancelled
             QMessageBox.information(self, 'FileReceipt Cancelled', 'FileReceipt generation has been cancelled.')
             # Enable all buttons in the GUI
@@ -1329,16 +1455,19 @@ class MainWindow(QWidget):
 
     # This function is used to open the specified folder and highlight/select the file
     def open_folder(self, file_path):
-        # Get the operating system name
         system = platform.system()
-        # Open the folder and select the file using the appropriate command based on the operating system
-        if system == 'Windows':
-            # Use the /select, argument to open the folder with the file selected in Windows
-            subprocess.Popen(f'explorer /select,"{os.path.normpath(file_path)}"')
-        elif system == 'Darwin':
-            subprocess.Popen(['open', '-R', file_path])
-        elif system == 'Linux':
-            subprocess.Popen(['xdg-open', file_path])
+        try:
+            if system == 'Windows':
+                subprocess.Popen(f'explorer /select,"{os.path.normpath(file_path)}"')
+            elif system == 'Darwin':
+                subprocess.Popen(['open', '-R', file_path])
+            elif system == 'Linux':
+                if shutil.which('xdg-open'):
+                    subprocess.Popen(['xdg-open', file_path])
+                else:
+                    QMessageBox.warning(self, 'Error', 'xdg-open not found. Please install xdg-utils.')
+        except Exception as e:
+            QMessageBox.warning(self, 'Error', f"Failed to open folder: {e}")
 
     # This function is called when the window is closed
     def closeEvent(self, event):

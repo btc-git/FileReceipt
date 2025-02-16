@@ -236,10 +236,9 @@ class ThresholdInfoMessageBox(QDialog):
 
         # Create a QLabel instance for the main paragraph
         text_label = QLabel(
-            'The "1,000 File Recursive Limit" checkbox limits recursive zip file processing to those with 1,000 files or less.\n\n'
-            'When checked, zip archives with more than 1,000 files will be skipped to prevent '
-            'excessive hash calculations and logging. The zip file itself will still be added to the catalog. Uncheck this option if you '
-            'want all zip files to be recursively cataloged regardless of the number of files inside. Note that processing zip files with 1,000+ files inside may take a long time.'
+            'When checked, the "1,000 File Recursive Limit" restricts recursive zip file processing to zip files containing 1,000 files or less.\n\n'
+            'Zip files with more than 1,000 files inside will be skipped to prevent excessive hash calculations and logging, but the zip file itself will still be added to the catalog. '
+            'Uncheck this option if you want all zip files to be recursively cataloged, regardless of the number of files inside. Note that processing zip files containing more than 1,000 files may take a long time.'
         )
         text_label.setWordWrap(True)
         text_label.setStyleSheet("font-size: 11pt;")
@@ -569,19 +568,8 @@ class HashingThread(QThread):
             # If the process hasn't been cancelled, calculate and emit the progress
             if not self.cancelled:
                 progress_value = int((self.current_file / total_files) * 100)
-            # Connect signals in start_processing
-            self.hashing_thread.progress.connect(self.update_progress)
-            self.hashing_thread.processing_file.connect(self.update_processing_label)
-
-            # Ensure your update functions like update_progress and update_processing_label look like:
-            @QtCore.pyqtSlot(int)
-            def update_progress(self, value):
-                self.progress_bar.setValue(value)
-
-            @QtCore.pyqtSlot(str)
-            def update_processing_label(self, file_name):
-                self.processing_label.setText(f'Processing: {file_name}')
-
+                self.progress.emit(progress_value)
+                self.processing_file.emit(os.path.basename(file_path))
 
         # Emit the finished signal with the results
         self.finished.emit(self.file_hashes, self.error_logs, self.empty_files, self.empty_directories)
@@ -1259,8 +1247,8 @@ class MainWindow(QWidget):
 
         # Create a list of file paths from the drop list
         file_paths = list(self.drop_list.file_paths)
-        # Create a HashingThread instance for computing file hashes
-        self.hashing_thread = HashingThread(file_paths, self.algorithm_dropdown.currentText())
+        # Create a HashingThread instance for computing file hashes, now with the threshold parameter
+        self.hashing_thread = HashingThread(file_paths, self.algorithm_dropdown.currentText(), self.threshold_checkbox.isChecked())
         # Connect the hashing thread signals to update the progress and processing label
         self.hashing_thread.progress.connect(self.update_progress)
         self.hashing_thread.processing_file.connect(self.update_processing_label)

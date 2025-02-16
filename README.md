@@ -5,7 +5,7 @@ FileReceipt is a program that quickly catalogs user-selected files and folders. 
 
 Having a record of files transferred between parties can be useful for coordination and resolving disputes. For example, the sender can create a FileReceipt before sending (or use [another method](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-filehash?view=powershell-7.3) to catalog information), creating a record of what they're sending. Similarly, the receiver can create a FileReceipt upon receipt to document what they've received. These two catalogs can be compared to ensure consistency and can be regenerated at any point to verify both parties possess identical files. [File verification](https://en.wikipedia.org/wiki/File_verification) using [cryptographic hash functions](https://en.wikipedia.org/wiki/Cryptographic_hash_function) is a [reliable and widely accepted](https://csrc.nist.gov/Projects/Hash-Functions) method to [ensure data integrity](https://learn.microsoft.com/en-us/dotnet/standard/security/ensuring-data-integrity-with-hash-codes).
 
-Click [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe) to download the latest version (9/20/2024).
+Click [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe) to download the latest version (2/16/2025).
 
 <p align="center">
   <img src="https://crimlawtech.com/FileReceiptScreenshot.PNG" alt="FileReceipt Screenshot" width="90%">
@@ -58,7 +58,7 @@ Visit the following pages for information and instructions on enabling "Long Fil
 
 ## Download (for most users)
 
-Download the latest version of FileReceipt on GitHub [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe). (9/20/2024)
+Download the latest version of FileReceipt on GitHub [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe). (2/16/2025)
 - You may receive a [warning](https://learn.microsoft.com/en-us/windows/security/operating-system-security/virus-and-threat-protection/microsoft-defender-smartscreen/) when you run the program for the first time. To bypass the warning, click 'More info' and then 'Run anyway.' The program has been submitted to Microsoft and cleared their Smart Screen security analysis, which should make the warnings go away eventually.
 
 ## Build (for developers)
@@ -87,9 +87,11 @@ Source Code: All FileReceipt source code and files are on the GitHub [repository
    Note: Replace `C:\FileReceipt\` with the correct path to where these files are located on your computer.
 
 ## Update History
-3/17/2024 - Changed zip file processing to utilize disk space (temp file) instead of RAM to avoid crashing when processing very large files. Added a threshold preventing recursive cataloging of zip files containing more than 1000 files.
+2/16/2025 - Added checkbox control to toggle the 1,000 file limit when processing zip files
 
 9/20/2024 - Removed text file output.
+
+3/17/2024 - Changed zip file processing to utilize disk space (temp file) instead of RAM to avoid crashing when processing very large files. Added a threshold preventing recursive cataloging of zip files containing more than 1,000 files.
 
 ## License
 FileReceipt is licensed under the GNU General Public License v3.0.

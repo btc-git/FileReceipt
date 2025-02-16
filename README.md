@@ -1,4 +1,4 @@
-### * Program under development. Current version is for testing only. (9/20/2024) *
+### * Program under development. Current version is for testing only. (2/16/2025) *
 
 # FileReceipt
 FileReceipt is a program that quickly catalogs user-selected files and folders. It creates a precise inventory of files that are nested within folders, subfolders, and zip files, eliminating the need for time-consuming manual inspection and documentation. It also calculates a hash value for each file, which can help verify that files are original, identical, and unaltered.

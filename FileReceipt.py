@@ -216,11 +216,11 @@ class HashInfoMessageBox(QDialog):
         layout.addLayout(ok_button_layout)
 
 
-# Message box that displays info about the 1,000 File Recursive Limit
+# Message box that displays info about the Recursion Threshold
 class ThresholdInfoMessageBox(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('1,000 File Recursive Limit Information')
+        self.setWindowTitle('Recursion Threshold Information')
         # Remove context help button in title bar
         self.setWindowFlags(
             self.windowFlags() & ~Qt.WindowContextHelpButtonHint
@@ -236,9 +236,13 @@ class ThresholdInfoMessageBox(QDialog):
 
         # Create a QLabel instance for the main paragraph
         text_label = QLabel(
-            'When checked, the "1,000 File Recursive Limit" restricts recursive zip file processing to zip files containing 1,000 files or less.\n\n'
-            'Zip files with more than 1,000 files inside will be skipped to prevent excessive hash calculations and logging, but the zip file itself will still be added to the catalog. '
-            'Uncheck this option if you want all zip files to be recursively cataloged, regardless of the number of files inside. Note that processing zip files containing more than 1,000 files may take a long time.'
+            'The "Recursion Threshold" option allows you to control how files within zip archives are processed.\n\n'
+            'You can select from the following options:\n'
+            '• 1 (no recursion): Skip processing the contents of zip archives entirely.\n'
+            '• 10, 100, 1000: Skip processing zip archives with more than the selected number of files.\n'
+            '• Off (no limit): Process all files in zip archives, regardless of count.\n\n'
+            'When a threshold is set, zip files containing more files than the threshold will be skipped to prevent excessive hash calculations and logging, but the zip file itself will still be added to the catalog. '
+            'Note that processing zip files containing many files may take a long time.'
         )
         text_label.setWordWrap(True)
         text_label.setStyleSheet("font-size: 11pt;")
@@ -483,14 +487,14 @@ class HashingThread(QThread):
     processing_file = QtCore.pyqtSignal(str)
     finished = QtCore.pyqtSignal(list, list, list, list)
 
-    def __init__(self, file_paths, hash_algorithm, use_1k_threshold):
+    def __init__(self, file_paths, hash_algorithm, recursion_threshold):
         super().__init__()
         self.file_paths = file_paths  # File paths to process
         self.file_hashes = []  # Store file hashes
         self.error_logs = []  # Store any errors during the process
         self.empty_files = []  # Store info of empty files
         self.empty_directories = []  # Store info of empty directories
-        self.use_1k_threshold = use_1k_threshold # Flag to use 1k threshold
+        self.recursion_threshold = recursion_threshold  # Recursion threshold value
         self.cancelled = False  # Flag to cancel the process
         self.hash_algorithm = hash_algorithm  # Hash algorithm to use
 
@@ -523,20 +527,39 @@ class HashingThread(QThread):
             if os.path.isfile(file_path):
                 # Handle zip files separately
                 if file_path.lower().endswith('.zip'):
-                    # Calculate the hash of the zip file
+                    # Calculate the hash of the zip file itself
                     hash_value, file_size, error_message = self.calculate_file_hash(file_path)
-                    # Handle errors during hash calculation
+                    
                     if error_message:
                         # Append error to error logs
                         self.error_logs.append((os.path.normpath(file_path), error_message))
                     else:
-                        # Calculate hashes for files inside the zip file
-                        hashes, errors, empty_files_zip, empty_dirs_zip = self.calculate_zip_hashes(file_path)
-                        # Append hashes and errors to respective lists
-                        self.file_hashes.extend(hashes)
-                        self.error_logs.extend(errors)
-                        self.empty_files.extend(empty_files_zip)
-                        self.empty_directories.extend(empty_dirs_zip)
+                        # Add the zip file itself to the file_hashes
+                        self.file_hashes.append([os.path.normpath(file_path), hash_value, file_size])
+                        
+                        # Only process the contents if recursion threshold is not 1
+                        if self.recursion_threshold != 1:
+                            # Check if recursion threshold is greater than 1 and zip has too many files
+                            if self.recursion_threshold > 1:
+                                try:
+                                    with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                                        if len(zip_ref.namelist()) > self.recursion_threshold:
+                                            continue  # Skip processing this zip's contents
+                                except Exception as e:
+                                    self.error_logs.append((os.path.normpath(file_path), f"Error reading zip file '{file_path}': {str(e)}"))
+                                    continue
+                                    
+                            # Calculate hashes for files inside the zip file
+                            hashes, errors, empty_files_zip, empty_dirs_zip = self.calculate_zip_hashes(file_path)
+                            
+                            # Don't add the zip file itself again since we already added it above
+                            # Only add the internal files (starting from index 1)
+                            if len(hashes) > 1:
+                                self.file_hashes.extend(hashes[1:])
+                                
+                            self.error_logs.extend(errors)
+                            self.empty_files.extend(empty_files_zip)
+                            self.empty_directories.extend(empty_dirs_zip)
                 else:
                     # Calculate the hash of the file
                     hash_value, file_size, error_message = self.calculate_file_hash(file_path)
@@ -618,6 +641,10 @@ class HashingThread(QThread):
             zip_hash_value, _, _ = self.calculate_file_hash(zip_path)
             file_hashes = [[os.path.normpath(zip_path), zip_hash_value, file_size]]
 
+            # If recursion threshold is 1, don't process the contents of the zip file
+            if self.recursion_threshold == 1:
+                return file_hashes, [], [], []  # Return empty lists for errors and empty files/dirs
+
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 with tempfile.TemporaryDirectory() as temp_dir:
                     zip_ref.extractall(temp_dir)
@@ -657,8 +684,9 @@ class HashingThread(QThread):
 
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             # Check the number of files in the nested zip before iterating over them
-            if len(zip_ref.namelist()) > 1000:
-                error_message = f"Nested zip file '{parent_zip_path}' not processed: contains more than 1000 files"
+            # Apply recursion threshold if set
+            if self.recursion_threshold > 0 and len(zip_ref.namelist()) > self.recursion_threshold:
+                error_message = f"Nested zip file '{parent_zip_path}' not processed: contains more than {self.recursion_threshold} files"
                 error_logs.append((parent_zip_path, error_message))
             else:
                 for file in zip_ref.namelist():
@@ -759,19 +787,27 @@ class HashingThread(QThread):
                     file_path = os.path.join(root, file)
                     # If the file is a zip archive
                     if file_path.lower().endswith('.zip'):
-                        # If the 1k threshold is enabled, count files within the zip and skip if more than 1000
-                        if self.use_1k_threshold:
+                        # Calculate the hash of the zip file itself
+                        hash_value, file_size, error_message = self.calculate_file_hash(file_path)
+                        
+                        # Add the zip file itself to file_hashes
+                        file_hashes.append([os.path.normpath(file_path), hash_value, file_size])
+                        
+                        # Skip processing zip contents if recursion threshold is 1
+                        if self.recursion_threshold == 1:
+                            continue
+                            
+                        # Check if threshold is greater than 1 and apply it
+                        if self.recursion_threshold > 1:  # Changed from > 0 to > 1
                             try:
                                 with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                                    if len(zip_ref.namelist()) > 1000:
-                                        print(f"Skipping {file_path} due to 1k file threshold.")
+                                    if len(zip_ref.namelist()) > self.recursion_threshold:
+                                        print(f"Skipping {file_path} due to recursion threshold of {self.recursion_threshold} files.")
                                         continue
                             except Exception as e:
                                 self.error_logs.append((os.path.normpath(file_path), f"Error reading zip file '{file_path}': {str(e)}"))
                                 continue
-
-                        # Calculate the hash of the zip file
-                        hash_value, file_size, error_message = self.calculate_file_hash(file_path)
+                        
                         # Handle errors during hash calculation
                         if error_message:
                             # Append error to error logs
@@ -779,12 +815,12 @@ class HashingThread(QThread):
                         else:
                             # Calculate hashes for files inside the zip file
                             hashes, errors, empty_files_zip, empty_dirs_zip = self.calculate_zip_hashes(file_path)
-                            # Append hashes and errors to respective lists
-                            self.file_hashes.extend(hashes)
+                            # Note: The zip file itself was already added above, so we skip the first item from hashes
+                            if len(hashes) > 1:
+                                self.file_hashes.extend(hashes[1:])
                             self.error_logs.extend(errors)
                             self.empty_files.extend(empty_files_zip)
                             self.empty_directories.extend(empty_dirs_zip)
-
 
                         # Emit a signal to update the file being processed
                         self.processing_file.emit(os.path.basename(file_path))
@@ -1008,13 +1044,18 @@ class MainWindow(QWidget):
 
 
 
-        # Create the '1k Threshold' checkbox
-        self.threshold_checkbox = QCheckBox("1,000 File Recursive Limit")
-        # Set the checkbox to be checked by default
-        self.threshold_checkbox.setChecked(True)
-        self.threshold_checkbox.setToolTip("Toggle to control recursive zip processing for more than 1000 files.")
+        # Create the recursion threshold dropdown (replacing the checkbox)
+        threshold_label = QLabel("Zip Recursion Threshold:")
+        self.threshold_dropdown = QComboBox()
+        self.threshold_dropdown.addItem("1 (no recursion)", 1)
+        self.threshold_dropdown.addItem("10", 10)
+        self.threshold_dropdown.addItem("100", 100)
+        self.threshold_dropdown.addItem("1000", 1000)
+        self.threshold_dropdown.addItem("Off (no limit)", -1)
+        # Set default to 1000
+        self.threshold_dropdown.setCurrentIndex(3)  # Index changed to 3 since "1000" is now the 4th item (index 3)
 
-        # Create a QLabel with a hyperlink for the threshold checkbox
+        # Create a QLabel with a hyperlink for the threshold dropdown
         threshold_link = QLabel('<a href="#" style="text-decoration: none;">[?]</a>')
         # Don't allow external links
         threshold_link.setOpenExternalLinks(False)
@@ -1026,13 +1067,14 @@ class MainWindow(QWidget):
         threshold_link.setFixedSize(threshold_link.sizeHint())
         threshold_link.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
-        # Connect the hyperlink's activated signal to the new ThresholdInfoMessageBox class
+        # Connect the hyperlink's activated signal to the ThresholdInfoMessageBox
         threshold_link.linkActivated.connect(lambda: ThresholdInfoMessageBox(self).exec_())
 
-        # Create a QHBoxLayout for the threshold checkbox and its hyperlink
+        # Create a QHBoxLayout for the threshold dropdown and its hyperlink
         threshold_layout = QHBoxLayout()
-        # Add the threshold checkbox and hyperlink to the layout
-        threshold_layout.addWidget(self.threshold_checkbox)
+        # Add the threshold label, dropdown, and hyperlink to the layout
+        threshold_layout.addWidget(threshold_label)
+        threshold_layout.addWidget(self.threshold_dropdown)
         threshold_layout.addWidget(threshold_link)
         # Add stretch to the layout
         threshold_layout.addStretch(1)
@@ -1247,8 +1289,13 @@ class MainWindow(QWidget):
 
         # Create a list of file paths from the drop list
         file_paths = list(self.drop_list.file_paths)
-        # Create a HashingThread instance for computing file hashes, now with the threshold parameter
-        self.hashing_thread = HashingThread(file_paths, self.algorithm_dropdown.currentText(), self.threshold_checkbox.isChecked())
+        
+        # Get the recursion threshold value from the dropdown
+        threshold_value = self.threshold_dropdown.currentData()
+        
+        # Create a HashingThread instance with the selected threshold value
+        self.hashing_thread = HashingThread(file_paths, self.algorithm_dropdown.currentText(), threshold_value)
+        
         # Connect the hashing thread signals to update the progress and processing label
         self.hashing_thread.progress.connect(self.update_progress)
         self.hashing_thread.processing_file.connect(self.update_processing_label)
@@ -1407,6 +1454,11 @@ class MainWindow(QWidget):
 
                 writer.writerow(["Date/Time Generated:"])
                 writer.writerow([current_time])
+                
+                # Get the recursion threshold setting used
+                threshold_value = self.threshold_dropdown.currentData()
+                threshold_text = "Off (no limit)" if threshold_value == -1 else str(threshold_value)
+                writer.writerow([f"Recursion Threshold Used: {threshold_text}"])
 
             # Set the progress bar value to 100% to indicate completion
             self.progress_bar.setValue(100)

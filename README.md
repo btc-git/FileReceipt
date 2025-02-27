@@ -8,7 +8,7 @@ Having a record of files transferred between parties can be useful for coordinat
 Click [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe) to download the latest version (2/26/2025).
 
 <p align="center">
-  <img src="https://crimlawtech.com/FileReceiptScreenshot.PNG" alt="FileReceipt Screenshot" width="90%">
+  <img src="https://crimlawtech.com/FileReceiptScreenshot2.PNG" alt="FileReceipt Screenshot" width="90%">
 </p>
 
 ### FileReceipt records the following information for each file:

@@ -497,34 +497,79 @@ class HashingThread(QThread):
         self.recursion_threshold = recursion_threshold  # Recursion threshold value
         self.cancelled = False  # Flag to cancel the process
         self.hash_algorithm = hash_algorithm  # Hash algorithm to use
+        # Add new variables for improved progress tracking
+        self.processed_files_count = 0  # Count of files processed so far
+        self.total_files_estimate = 0   # Initial estimate of total files
+        self.progress_lock = QtCore.QMutex()  # Mutex for thread-safe progress updates
 
-    # count total number of files (but not wthin zip files) that will
-    # be processed and use for progress calculation
+    # Update the count of files that will be processed to include zip contents estimation
     def get_total_file_count(self, file_paths):
         total_count = 0
         for path in file_paths:
             if os.path.isfile(path):
                 total_count += 1
+                # Add an estimate for zip files based on a sampling method
+                if path.lower().endswith('.zip') and self.recursion_threshold != 1:
+                    try:
+                        with zipfile.ZipFile(path, 'r') as zip_ref:
+                            zip_file_count = len(zip_ref.namelist())
+                            # If under threshold or no threshold, count all files
+                            if self.recursion_threshold <= 0 or zip_file_count <= self.recursion_threshold:
+                                total_count += zip_file_count
+                            # Add estimation for nested zips - just a rough estimate
+                            for item in zip_ref.namelist():
+                                if item.lower().endswith('.zip'):
+                                    total_count += 10  # Rough estimate per nested zip
+                    except Exception:
+                        # Just count the zip file itself if we can't open it
+                        pass
             elif os.path.isdir(path):
                 for root, dirs, files in os.walk(path):
                     total_count += len(files)
-        return total_count
+                    # Add estimates for zip files in directories
+                    for file in files:
+                        if file.lower().endswith('.zip') and self.recursion_threshold != 1:
+                            zip_path = os.path.join(root, file)
+                            try:
+                                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                                    zip_file_count = len(zip_ref.namelist())
+                                    # If under threshold or no threshold, count all files
+                                    if self.recursion_threshold <= 0 or zip_file_count <= self.recursion_threshold:
+                                        total_count += zip_file_count
+                                    # Add estimation for nested zips
+                                    for item in zip_ref.namelist():
+                                        if item.lower().endswith('.zip'):
+                                            total_count += 10  # Rough estimate per nested zip
+                            except Exception:
+                                # Skip if zip can't be read
+                                pass
+        return max(1, total_count)  # Ensure we don't return 0
+
+    # Method to update progress in a thread-safe way
+    def update_progress(self):
+        self.progress_lock.lock()
+        self.processed_files_count += 1
+        progress_value = min(99, int((self.processed_files_count / max(self.total_files_estimate, self.processed_files_count)) * 100))
+        self.progress.emit(progress_value)
+        self.progress_lock.unlock()
 
     def run(self):
-        # get count of total number of files to be processed
-        total_files = self.get_total_file_count(self.file_paths)
-
-        self.current_file = 0  # Current file index
+        # Get initial estimate of total files (including inside zips)
+        self.total_files_estimate = self.get_total_file_count(self.file_paths)
+        self.processed_files_count = 0  # Reset counter
 
         # Loop over all file paths
         for file_path in self.file_paths:
             # Break the loop if the process has been cancelled
             if self.cancelled:
                 break
-            self.current_file += 1  # Increment the current file index
 
             # Check if the file path is a file
             if os.path.isfile(file_path):
+                # Update progress for this file
+                self.update_progress()
+                self.processing_file.emit(os.path.basename(file_path))
+                
                 # Handle zip files separately
                 if file_path.lower().endswith('.zip'):
                     # Calculate the hash of the zip file itself
@@ -581,7 +626,7 @@ class HashingThread(QThread):
             # Check if the file path is a directory
             elif os.path.isdir(file_path):
                 # Calculate hashes for files inside the directory
-                hashes, errors, empty_files_folder, empty_dirs_folder = self.calculate_folder_hashes(file_path, total_files, self.current_file)
+                hashes, errors, empty_files_folder, empty_dirs_folder = self.calculate_folder_hashes(file_path, self.total_files_estimate, self.processed_files_count)
                 # Append hashes and errors to respective lists
                 self.file_hashes.extend(hashes)
                 self.error_logs.extend(errors)
@@ -590,10 +635,14 @@ class HashingThread(QThread):
 
             # If the process hasn't been cancelled, calculate and emit the progress
             if not self.cancelled:
-                progress_value = int((self.current_file / total_files) * 100)
+                progress_value = int((self.processed_files_count / self.total_files_estimate) * 100)
                 self.progress.emit(progress_value)
                 self.processing_file.emit(os.path.basename(file_path))
 
+        # Ensure we reach 100% at the end
+        if not self.cancelled:
+            self.progress.emit(100)
+            
         # Emit the finished signal with the results
         self.finished.emit(self.file_hashes, self.error_logs, self.empty_files, self.empty_directories)
 
@@ -678,6 +727,10 @@ class HashingThread(QThread):
                         # Process files (non-directory entries)
                         temp_file_path = os.path.join(temp_dir, zipped_file)
                         original_file_path = os.path.normpath(os.path.join(zip_path, zipped_file))
+                        
+                        # Update progress for this file inside the zip
+                        self.update_progress()
+                        self.processing_file.emit(os.path.basename(zipped_file))
                         
                         # Check if it's a nested zip file
                         if zipped_file.lower().endswith('.zip'):
@@ -776,7 +829,8 @@ class HashingThread(QThread):
                             file_hashes.append([normalized_path, "--FOLDER--", "N/A"])
                         continue
                     
-                    # Update progress
+                    # Update progress for this file inside the nested zip
+                    self.update_progress()
                     self.processing_file.emit(os.path.basename(file))
                     
                     # Construct normalized paths
@@ -872,8 +926,8 @@ class HashingThread(QThread):
                 # Process files in this directory
                 for file in files:
                     # Increment file counter and update progress
-                    self.current_file += 1
-                    progress_value = int((self.current_file / total_files) * 100)
+                    self.processed_files_count += 1
+                    progress_value = int((self.processed_files_count / total_files) * 100)
                     self.progress.emit(progress_value)
 
                     # Create normalized file path

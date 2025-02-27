@@ -1,11 +1,11 @@
-### * Program under development. Current version is for testing only. (2/16/2025) *
+### * Program under development. Current version is for testing only. (2/26/2025) *
 
 # FileReceipt
 FileReceipt is a program that quickly catalogs user-selected files and folders. It creates a precise inventory of files that are nested within folders, subfolders, and zip files, eliminating the need for time-consuming manual inspection and documentation. It also calculates a hash value for each file, which can help verify that files are original, identical, and unaltered.
 
 Having a record of files transferred between parties can be useful for coordination and resolving disputes. For example, the sender can create a FileReceipt before sending (or use [another method](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-filehash?view=powershell-7.3) to catalog information), creating a record of what they're sending. Similarly, the receiver can create a FileReceipt upon receipt to document what they've received. These two catalogs can be compared to ensure consistency and can be regenerated at any point to verify both parties possess identical files. [File verification](https://en.wikipedia.org/wiki/File_verification) using [cryptographic hash functions](https://en.wikipedia.org/wiki/Cryptographic_hash_function) is a [reliable and widely accepted](https://csrc.nist.gov/Projects/Hash-Functions) method to [ensure data integrity](https://learn.microsoft.com/en-us/dotnet/standard/security/ensuring-data-integrity-with-hash-codes).
 
-Click [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe) to download the latest version (2/16/2025).
+Click [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe) to download the latest version (2/26/2025).
 
 <p align="center">
   <img src="https://crimlawtech.com/FileReceiptScreenshot.PNG" alt="FileReceipt Screenshot" width="90%">
@@ -39,6 +39,8 @@ FileReceipt calculates a [hash value](https://en.wikipedia.org/wiki/Cryptographi
 
 FileReceipt uses hash algorithm [SHA-256](https://en.wikipedia.org/wiki/SHA-2) by default, but can be changed to use SHA-512, SHA-1, MD5, or other common algorithms. Changing the hash algorithm may be necessary to coordinate with other programs or individuals. When comparing files, in order for the hash values of identical files to match, the same hash algorithm must be used.
 
+The "Zip Recursion Threshold" feature controls how zip archives are processed. Settings include: 1 (no recursion), 10, 100, 1000, or "Off" (unlimited). When set to "1", FileReceipt will only catalog the zip file itself without examining its contents. Other threshold settings will skip processing zip files containing more than the selected number of files. For example, if set to 100, any zip containing over 100 files will have its contents skipped (though the zip file itself is still cataloged). This threshold applies to both top-level zip files and nested zip files (zips within zips). This feature helps prevent excessive processing time when dealing with large archives.
+
 #### NOTE: Enable the "Long File Path" option in Windows for most accurate results.
 By default, Windows imposes a limit on the length of file paths and names, restricting them to approximately 260 characters combined. If a file path exceeds this limit due to long folder names or file names, some programs will not be able to open the file, even if the file is visible in Windows File Explorer.
 
@@ -58,7 +60,7 @@ Visit the following pages for information and instructions on enabling "Long Fil
 
 ## Download (for most users)
 
-Download the latest version of FileReceipt on GitHub [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe). (2/16/2025)
+Download the latest version of FileReceipt on GitHub [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe). (2/26/2025)
 - You may receive a [warning](https://learn.microsoft.com/en-us/windows/security/operating-system-security/virus-and-threat-protection/microsoft-defender-smartscreen/) when you run the program for the first time. To bypass the warning, click 'More info' and then 'Run anyway.' The program has been submitted to Microsoft and cleared their Smart Screen security analysis, which should make the warnings go away eventually.
 
 ## Build (for developers)
@@ -87,7 +89,7 @@ Source Code: All FileReceipt source code and files are on the GitHub [repository
    Note: Replace `C:\FileReceipt\` with the correct path to where these files are located on your computer.
 
 ## Update History
-2/16/2025 - Added checkbox control to toggle the 1,000 file limit when processing zip files
+2/26/2025 - Added dropdown to configure zip recursion threshold. Users can now select a threshold (1, 10, 100, 1000, or unlimited) to control how files within zip archives are processed.
 
 9/20/2024 - Removed text file output.
 

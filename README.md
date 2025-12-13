@@ -1,11 +1,11 @@
-### * Program under development. Current version is for testing only. (2/26/2025) *
+### * Program under development. Current version is for testing only. (12/12/2025) *
 
 # FileReceipt
 FileReceipt is a program that quickly catalogs user-selected files and folders. It creates a precise inventory of files that are nested within folders, subfolders, and zip files, eliminating the need for time-consuming manual inspection and documentation. It also calculates a hash value for each file, which can help verify that files are original, identical, and unaltered.
 
 Having a record of files transferred between parties can be useful for coordination and resolving disputes. For example, the sender can create a FileReceipt before sending (or use [another method](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-filehash?view=powershell-7.3) to catalog information), creating a record of what they're sending. Similarly, the receiver can create a FileReceipt upon receipt to document what they've received. These two catalogs can be compared to ensure consistency and can be regenerated at any point to verify both parties possess identical files. [File verification](https://en.wikipedia.org/wiki/File_verification) using [cryptographic hash functions](https://en.wikipedia.org/wiki/Cryptographic_hash_function) is a [reliable and widely accepted](https://csrc.nist.gov/Projects/Hash-Functions) method to [ensure data integrity](https://learn.microsoft.com/en-us/dotnet/standard/security/ensuring-data-integrity-with-hash-codes).
 
-Click [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe) to download the latest version (2/26/2025).
+Click [here](https://github.com/btc-git/FileReceipt/releases/latest) to download the latest version.
 
 <p align="center">
   <img src="https://crimlawtech.com/FileReceiptScreenshot2.PNG" alt="FileReceipt Screenshot" width="90%">
@@ -25,6 +25,15 @@ Click [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe) to
 - Empty Files (0 bytes)
 - Empty Folders (0 items)
 - Files with matching hashes
+- Processing statistics:
+  - Total number of files cataloged
+  - Total number of folders cataloged
+  - Number of zip archives found
+  - Total input size (bytes)
+  - Archive size (bytes)
+  - Extracted content size (bytes)
+  - Date/time generated with timezone
+  - Recursion threshold used
 
 ## Usage
 
@@ -60,7 +69,7 @@ Visit the following pages for information and instructions on enabling "Long Fil
 
 ## Download (for most users)
 
-Download the latest version of FileReceipt on GitHub [here](https://github.com/btc-git/FileReceipt/raw/main/FileReceipt.exe). (2/26/2025)
+Download the latest version of FileReceipt on GitHub [here](https://github.com/btc-git/FileReceipt/releases/latest).
 - You may receive a [warning](https://learn.microsoft.com/en-us/windows/security/operating-system-security/virus-and-threat-protection/microsoft-defender-smartscreen/) when you run the program for the first time. To bypass the warning, click 'More info' and then 'Run anyway.' The program has been submitted to Microsoft and cleared their Smart Screen security analysis, which should make the warnings go away eventually.
 
 ## Build (for developers)
@@ -73,22 +82,24 @@ Source Code: All FileReceipt source code and files are on the GitHub [repository
 1. Install Python 3.x: 
    - Download Python 3.x from the official Python [website](https://www.python.org/downloads/).
    - Follow the installation instructions provided by the Python installer.
-2. Install PyQt5:
+2. Install dependencies:
    - Open a command prompt or terminal.
-   - Run the following command to install PyQt5:
+   - Run the following command:
      ```
-     pip install pyqt5
+     pip install pyqt5 pyinstaller tzlocal
      ```
 3. Build the standalone executable:
    - Open a command prompt or terminal.
    - Navigate to the directory where you have the FileReceipt.py and other repository files located.
    - Run the following command to build the standalone executable using PyInstaller:
      ```     
-     pyinstaller --onefile --windowed --icon="C:\FileReceipt\fricon.ico" --add-data "C:\FileReceipt\fricon.png;." --add-data "C:\FileReceipt\fricon.ico;." --add-data "C:\FileReceipt\license.txt;." FileReceipt.py
+     pyinstaller --onefile --windowed --icon="fricon.ico" --add-data "fricon.png;." --add-data "fricon.ico;." --add-data "LICENSE.txt;." FileReceipt.py
      ```
-   Note: Replace `C:\FileReceipt\` with the correct path to where these files are located on your computer.
+   Note: Run this command from the directory where FileReceipt.py, fricon.png, fricon.ico, and LICENSE.txt are located.
 
 ## Update History
+12/12/2025 - Fixed deep nested zip processing. Corrected temp directory handling and file extraction path reconstruction for zips within zips within zips. Added processing statistics to CSV output (file counts, archive sizes, etc.).
+
 2/26/2025 - Added dropdown to configure zip recursion threshold. Users can now select a threshold (1, 10, 100, 1000, or unlimited) to control how files within zip archives are processed.
 
 9/20/2024 - Removed text file output.
@@ -107,4 +118,4 @@ You should have received a copy of the GNU General Public License along with thi
 ## Contact
 Brian@CrimLawTech.com
 
-Copyright (c) 2023 Brian Cummings
+Copyright (c) 2025 CrimLawTech LLC

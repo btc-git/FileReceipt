@@ -1,5 +1,5 @@
 FileReceipt
-Copyright (c) 2023 Brian Cummings
+Copyright (c) 2025 CrimLawTech LLC
 brian@crimlawtech.com
 
 =======================================

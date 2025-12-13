@@ -30,9 +30,9 @@ Click [here](https://github.com/btc-git/FileReceipt/releases/latest) to download
   - Total number of folders cataloged
   - Number of zip archives found
   - Total input size (bytes)
-  - Archive size (bytes)
-  - Extracted content size (bytes)
-  - Date/time generated with timezone
+  - Size of zip archives (bytes)
+  - Size of non-archive files (bytes)
+  - Date/time generated
   - Recursion threshold used
 
 ## Usage

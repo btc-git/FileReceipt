@@ -92,8 +92,8 @@ def write_results_to_csv(csv_file_path, file_hashes, error_logs, empty_files,
         writer.writerow([f"Folders Cataloged: {stats['total_folders']}"])
         writer.writerow([f"Zip Archives Found: {stats['total_zips']}"])
         writer.writerow([f"Total Input Size: {stats['total_size']:,} bytes"])
-        writer.writerow([f"Archive Size: {stats['zip_size']:,} bytes"])
-        writer.writerow([f"Extracted Content Size: {stats['unzipped_size']:,} bytes"])
+        writer.writerow([f"Size of Zip Archives: {stats['zip_size']:,} bytes"])
+        writer.writerow([f"Size of Non-Archive Files: {stats['unzipped_size']:,} bytes"])
         writer.writerow([])
 
         # Add empty rows for separation

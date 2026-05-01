@@ -104,6 +104,8 @@ Source Code: All FileReceipt source code and files are on the GitHub [repository
    Note: Run this command from the directory where FileReceipt.py, fricon.png, fricon.ico, and LICENSE.txt are located.
 
 ## Update History
+5/1/2026 - Added item number and file name columns to catalog table. Fixed size stats double-counting when zips are expanded; added Input Size and per-file extraction progress. Added summary counts for duplicate groups, redundant duplicates, empty files, empty folders, and errors to statistics section.
+
 12/12/2025 - Fixed deep nested zip processing. Corrected temp directory handling and file extraction path reconstruction for zips within zips within zips. Added processing statistics to CSV output (file counts, archive sizes, etc.).
 
 2/26/2025 - Added dropdown to configure zip recursion threshold. Users can now select a threshold (1, 10, 100, 1000, or unlimited) to control how files within zip archives are processed.

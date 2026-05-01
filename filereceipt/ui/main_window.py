@@ -505,7 +505,8 @@ class MainWindow(QWidget):
                     empty_files,
                     empty_dirs,
                     hash_algorithm,
-                    threshold_value
+                    threshold_value,
+                    self.hashing_thread.input_size
                 )
             except Exception as e:
                 error_msg = f"Failed to write CSV file: {str(e)}"

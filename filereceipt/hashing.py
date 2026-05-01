@@ -85,6 +85,22 @@ class HashingThread(QThread):
         self.total_files_estimate = self.get_total_file_count(self.file_paths)
         self.processed_files_count = 0  # Reset counter
 
+        # Compute the total size of the top-level inputs the user actually provided
+        self.input_size = 0
+        for p in self.file_paths:
+            try:
+                if os.path.isfile(p):
+                    self.input_size += os.path.getsize(p)
+                elif os.path.isdir(p):
+                    for root, dirs, files in os.walk(p, followlinks=False):
+                        for f in files:
+                            try:
+                                self.input_size += os.path.getsize(os.path.join(root, f))
+                            except OSError:
+                                pass
+            except OSError:
+                pass
+
         # Loop over all file paths
         for file_path in self.file_paths:
             # Break the loop if the process has been cancelled
@@ -100,6 +116,7 @@ class HashingThread(QThread):
                 # Handle zip files separately
                 if file_path.lower().endswith('.zip'):
                     # Calculate the hash of the zip file itself
+                    self.processing_file.emit(f"Hashing archive: {os.path.basename(file_path)}")
                     hash_value, file_size, error_message = self.calculate_file_hash(file_path)
                     
                     if error_message:
@@ -231,8 +248,8 @@ class HashingThread(QThread):
                     return file_hashes, self.error_logs, [], []
                     
                 with tempfile.TemporaryDirectory() as temp_dir:
-                    zip_ref.extractall(temp_dir)
-                    for zipped_file in zip_ref.namelist():
+                    all_entries = zip_ref.namelist()
+                    for zipped_file in all_entries:
                         # Handle directory entries in zip files
                         if zipped_file.endswith('/'):
                             # Process directory entry
@@ -242,7 +259,7 @@ class HashingThread(QThread):
                             # Check if directory is empty (no entries with this dir as prefix)
                             is_empty = not any(
                                 entry != zipped_file and entry.startswith(zipped_file) 
-                                for entry in zip_ref.namelist()
+                                for entry in all_entries
                             )
                             
                             if is_empty:
@@ -251,6 +268,15 @@ class HashingThread(QThread):
                                 file_hashes.append([original_dir_path, "--FOLDER--", "N/A"])
                             continue
                             
+                        # Extract this file now (instead of extractall upfront) so that
+                        # progress signals fire between files rather than after a long block.
+                        try:
+                            zip_ref.extract(zipped_file, temp_dir)
+                        except Exception as e:
+                            original_file_path = os.path.normpath(os.path.join(zip_path, zipped_file))
+                            self.error_logs.append((original_file_path, f"Error extracting '{zipped_file}': {str(e)}"))
+                            continue
+
                         # Process files (non-directory entries)
                         temp_file_path = os.path.join(temp_dir, zipped_file)
                         original_file_path = os.path.normpath(os.path.join(zip_path, zipped_file))

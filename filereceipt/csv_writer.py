@@ -6,7 +6,8 @@ from tzlocal import get_localzone
 
 
 def write_results_to_csv(csv_file_path, file_hashes, error_logs, empty_files, 
-                         empty_dirs, hash_algorithm, recursion_threshold):
+                         empty_dirs, hash_algorithm, recursion_threshold,
+                         input_size=0):
     """Write file receipt results to a CSV file.
     
     Args:
@@ -22,11 +23,13 @@ def write_results_to_csv(csv_file_path, file_hashes, error_logs, empty_files,
         writer = csv.writer(file)
 
         # Write the catalog header to the CSV file
-        writer.writerow(["Catalog of Selected Files [Path]:", f"File Hash [{hash_algorithm}]:", "File Size [bytes]:"])
+        writer.writerow(["Item #:", "File Name:", "Catalog of Selected Files [Path]:", f"File Hash [{hash_algorithm}]:", "File Size [bytes]:"])
 
         # Write the file information for each file in the file_hashes list as a row in the CSV file
-        for hash_info in file_hashes:
-            writer.writerow([os.path.normpath(hash_info[0]), hash_info[1], hash_info[2]])
+        for index, hash_info in enumerate(file_hashes, start=1):
+            is_folder = hash_info[1] == "--FOLDER--"
+            file_name = "[Folder]" if is_folder else os.path.basename(hash_info[0])
+            writer.writerow([index, file_name, os.path.normpath(hash_info[0]), hash_info[1], hash_info[2]])
         # Add empty rows for separation
         writer.writerow([] * 3)
 
@@ -87,13 +90,17 @@ def write_results_to_csv(csv_file_path, file_hashes, error_logs, empty_files,
 
         # Write the statistics section header to the CSV file
         writer.writerow(["File Processing Statistics:"])
-        stats = calculate_statistics(file_hashes, empty_files, empty_dirs)
+        stats = calculate_statistics(file_hashes, empty_files, empty_dirs, duplicates)
         writer.writerow([f"Files Cataloged: {stats['total_files']}"])
         writer.writerow([f"Folders Cataloged: {stats['total_folders']}"])
-        writer.writerow([f"Zip Archives Found: {stats['total_zips']}"])
-        writer.writerow([f"Total Input Size: {stats['total_size']:,} bytes"])
-        writer.writerow([f"Size of Zip Archives: {stats['zip_size']:,} bytes"])
-        writer.writerow([f"Size of Non-Archive Files: {stats['unzipped_size']:,} bytes"])
+        writer.writerow([f"Zip Archives Cataloged: {stats['total_zips']}"])
+        writer.writerow([f"Input File Size: {input_size:,} bytes"])
+        writer.writerow([f"Total Cataloged File Size: {stats['total_size']:,} bytes"])
+        writer.writerow([f"Files With Duplicates: {stats['duplicate_groups']}"])
+        writer.writerow([f"Redundant Duplicate Files: {stats['extra_duplicates']}"])
+        writer.writerow([f"Empty Files: {len(empty_files)}"])
+        writer.writerow([f"Empty Folders: {len(empty_dirs)}"])
+        writer.writerow([f"Processing Errors: {len(unique_errors)}"])
         writer.writerow([])
 
         # Add empty rows for separation
@@ -138,13 +145,14 @@ def find_duplicates(file_hashes):
     return [duplicate_group for duplicate_group in hash_counts.values() if len(duplicate_group) > 1]
 
 
-def calculate_statistics(file_hashes, empty_files, empty_dirs):
+def calculate_statistics(file_hashes, empty_files, empty_dirs, duplicates=None):
     """Calculate file processing statistics.
     
     Args:
         file_hashes: List of [path, hash, size] tuples
         empty_files: List of [path, hash, size] for empty files
         empty_dirs: List of [path, "--FOLDER--", "N/A"] for empty directories
+        duplicates: Optional list of duplicate groups from find_duplicates()
         
     Returns:
         Dictionary containing statistics about processed files
@@ -153,39 +161,64 @@ def calculate_statistics(file_hashes, empty_files, empty_dirs):
     total_folders = 0
     total_zips = 0
     total_size = 0
-    zip_size = 0
-    
+    zip_on_disk_size = 0  # compressed on-disk size of ALL zip entries (expanded or not)
+    standalone_size = 0  # non-zip files that are NOT inside any zip archive
+
+    # Build a set of all cataloged paths to detect which zips were expanded.
+    all_paths = set(hash_info[0] for hash_info in file_hashes)
+    expanded_zips = set()
+    for hash_info in file_hashes:
+        path = hash_info[0]
+        if path.lower().endswith('.zip') and hash_info[1] != "--FOLDER--":
+            prefix = path + os.sep
+            if any(p.startswith(prefix) for p in all_paths):
+                expanded_zips.add(path)
+
+    def _is_inside_zip(path):
+        """Return True if the path lives inside a zip archive."""
+        parts = path.replace('\\', '/').split('/')
+        return any(part.lower().endswith('.zip') for part in parts[:-1])
+
     # Count files and calculate sizes from file_hashes
     for hash_info in file_hashes:
         if hash_info[1] == "--FOLDER--":
-            # This is a directory entry
             total_folders += 1
         else:
-            # This is a file entry
             total_files += 1
-            file_size = hash_info[2]
-            total_size += file_size
-            
-            # Check if it's a zip file
-            if hash_info[0].lower().endswith('.zip'):
+            path = hash_info[0]
+            size = hash_info[2]
+
+            if path.lower().endswith('.zip'):
                 total_zips += 1
-                zip_size += file_size
-    
+                zip_on_disk_size += size  # always record the on-disk compressed size
+                if path not in expanded_zips:
+                    # Unexpanded zip: count its compressed size as cataloged content
+                    total_size += size
+            else:
+                total_size += size
+                if not _is_inside_zip(path):
+                    standalone_size += size
+
     # Add empty files to total count and size
     total_files += len(empty_files)
     total_size += sum(f[2] for f in empty_files)
-    
+
     # Add empty directories to total folder count
     total_folders += len(empty_dirs)
-    
-    # Calculate unzipped file size (total minus zip files)
-    unzipped_size = total_size - zip_size
-    
+
+    # Duplicate stats: groups with more than one copy, and total redundant files
+    if duplicates is None:
+        duplicates = find_duplicates(file_hashes)
+    duplicate_groups = len(duplicates)
+    extra_duplicates = sum(len(group) - 1 for group in duplicates)
+
     return {
         'total_files': total_files,
         'total_folders': total_folders,
         'total_zips': total_zips,
         'total_size': total_size,
-        'zip_size': zip_size,
-        'unzipped_size': unzipped_size
+        'zip_on_disk_size': zip_on_disk_size,
+        'standalone_size': standalone_size,
+        'duplicate_groups': duplicate_groups,
+        'extra_duplicates': extra_duplicates
     }

@@ -146,9 +146,8 @@ class HashingThread(QThread):
                             if len(hashes) > 1:
                                 self.file_hashes.extend(hashes[1:])
                                 
-                            self.error_logs.extend(errors)
-                            self.empty_files.extend(empty_files_zip)
-                            self.empty_directories.extend(empty_dirs_zip)
+                            # Note: self.empty_files and self.empty_directories are already
+                            # accumulated inside calculate_zip_hashes; do not re-extend here.
                 else:
                     # Calculate the hash of the file
                     hash_value, file_size, error_message = self.calculate_file_hash(file_path)
@@ -252,9 +251,13 @@ class HashingThread(QThread):
                     for zipped_file in all_entries:
                         # Handle directory entries in zip files
                         if zipped_file.endswith('/'):
+                            # Sanitize entry path: strip leading slashes to prevent drive-root paths
+                            safe_entry = zipped_file.lstrip('/')
+                            if not safe_entry:
+                                continue  # Skip bare '/' entries
                             # Process directory entry
                             # Store path, normalized properly
-                            original_dir_path = os.path.normpath(os.path.join(zip_path, zipped_file))
+                            original_dir_path = os.path.normpath(os.path.join(zip_path, safe_entry))
                             
                             # Check if directory is empty (no entries with this dir as prefix)
                             is_empty = not any(
@@ -377,7 +380,10 @@ class HashingThread(QThread):
                         
                         # Process directory entries in zip files
                         if file.endswith('/'):
-                            normalized_path = os.path.normpath(os.path.join(parent_zip_path, file))
+                            safe_entry = file.lstrip('/')
+                            if not safe_entry:
+                                continue  # Skip bare '/' entries
+                            normalized_path = os.path.normpath(os.path.join(parent_zip_path, safe_entry))
                             
                             # Check if directory is empty
                             is_empty = not any(
@@ -430,7 +436,10 @@ class HashingThread(QThread):
                                         for nested_file in nested_zip.namelist():
                                             if nested_file.endswith('/'):
                                                 # Process directory entry in nested zip
-                                                nested_dir_path = os.path.normpath(os.path.join(normalized_file_path, nested_file))
+                                                safe_nested = nested_file.lstrip('/')
+                                                if not safe_nested:
+                                                    continue  # Skip bare '/' entries
+                                                nested_dir_path = os.path.normpath(os.path.join(normalized_file_path, safe_nested))
                                                 is_nested_dir_empty = not any(
                                                     nf != nested_file and nf.startswith(nested_file) 
                                                     for nf in nested_zip.namelist()
@@ -555,9 +564,8 @@ class HashingThread(QThread):
                             # Skip the first item which is the zip file itself (already added)
                             if len(hashes) > 1:
                                 file_hashes.extend(hashes[1:])
-                            self.error_logs.extend(errors)
-                            self.empty_files.extend(empty_files_zip)
-                            self.empty_directories.extend(empty_dirs_zip)
+                            # Note: self.empty_files and self.empty_directories are already
+                            # accumulated inside calculate_zip_hashes; do not re-extend here.
 
                         self.processing_file.emit(os.path.basename(norm_file_path))
                     else:

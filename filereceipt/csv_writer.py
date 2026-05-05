@@ -23,7 +23,7 @@ def write_results_to_csv(csv_file_path, file_hashes, error_logs, empty_files,
         writer = csv.writer(file)
 
         # Write the catalog header to the CSV file
-        writer.writerow(["Item #:", "File Name:", "Catalog of Selected Files [Path]:", f"File Hash [{hash_algorithm}]:", "File Size [bytes]:"])
+        writer.writerow(["Item #:", "File Name:", "File Path:", f"File Hash [{hash_algorithm}]:", "File Size [bytes]:"])
 
         # Write the file information for each file in the file_hashes list as a row in the CSV file
         for index, hash_info in enumerate(file_hashes, start=1):

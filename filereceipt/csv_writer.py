@@ -105,6 +105,13 @@ def write_results_to_csv(csv_file_path, file_hashes, error_logs, empty_files,
         writer.writerow([f"Processing Errors: {len(unique_errors)}"])
         writer.writerow([])
 
+        # Write the file type statistics section
+        writer.writerow(["File Type Statistics:"])
+        writer.writerow(["Extension:", "Files:", "Total Size [bytes]:"])
+        for ext, ext_data in calculate_extension_statistics(file_hashes):
+            writer.writerow([ext, ext_data['count'], f"{ext_data['size']:,}"])
+        writer.writerow([])
+
         # Add empty rows for separation
         writer.writerow([] * 2)
 
@@ -224,3 +231,30 @@ def calculate_statistics(file_hashes, empty_files, empty_dirs, duplicates=None):
         'duplicate_groups': duplicate_groups,
         'extra_duplicates': extra_duplicates
     }
+
+
+def calculate_extension_statistics(file_hashes):
+    """Count files and total size per extension, sorted by size descending.
+
+    Args:
+        file_hashes: List of [path, hash, size] tuples
+
+    Returns:
+        List of (extension, {'count': int, 'size': int}) sorted by size descending.
+        Files with no extension are grouped under '(none)'.
+    """
+    ext_stats = {}
+    for hash_info in file_hashes:
+        if hash_info[1] == "--FOLDER--":
+            continue
+        _, ext = os.path.splitext(hash_info[0])
+        ext = ext.lower() if ext else "(none)"
+        try:
+            size = int(hash_info[2])
+        except (ValueError, TypeError):
+            size = 0
+        if ext not in ext_stats:
+            ext_stats[ext] = {'count': 0, 'size': 0}
+        ext_stats[ext]['count'] += 1
+        ext_stats[ext]['size'] += size
+    return sorted(ext_stats.items(), key=lambda x: x[1]['size'], reverse=True)

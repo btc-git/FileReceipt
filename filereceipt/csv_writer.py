@@ -23,13 +23,15 @@ def write_results_to_csv(csv_file_path, file_hashes, error_logs, empty_files,
         writer = csv.writer(file)
 
         # Write the catalog header to the CSV file
-        writer.writerow(["Item #:", "File Name:", "File Path:", f"File Hash [{hash_algorithm}]:", "File Size [bytes]:"])
+        writer.writerow(["Item #:", "File / Folder Name:", "File / Folder Path:", f"File Hash [{hash_algorithm}]:", "File Size [bytes]:"])
 
         # Write the file information for each file in the file_hashes list as a row in the CSV file
         for index, hash_info in enumerate(file_hashes, start=1):
             is_folder = hash_info[1] == "--FOLDER--"
-            file_name = "[Folder]" if is_folder else os.path.basename(hash_info[0])
-            writer.writerow([index, file_name, os.path.normpath(hash_info[0]), hash_info[1], hash_info[2]])
+            basename = os.path.basename(hash_info[0])
+            file_name = f"{basename} [Folder]" if is_folder else basename
+            display_hash = "[Folder]" if is_folder else hash_info[1]
+            writer.writerow([index, file_name, os.path.normpath(hash_info[0]), display_hash, hash_info[2]])
         # Add empty rows for separation
         writer.writerow([] * 3)
 

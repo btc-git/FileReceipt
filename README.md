@@ -5,7 +5,7 @@ This application was developed with AI assistance and has undergone human review
 
 ---
 
-### * Program under development. Current version is still under testing. (5/1/2026) *
+### * Program under development. Current version is still under testing. (5/27/2026) *
 
 FileReceipt is a program that quickly catalogs user-selected files and folders. It creates a precise inventory of files that are nested within folders, subfolders, and zip files, eliminating the need for time-consuming manual inspection and documentation. It also calculates a hash value for each file, which can help verify that files are original, identical, and unaltered.
 
@@ -40,6 +40,9 @@ Click [here](https://github.com/btc-git/FileReceipt/releases/latest) to download
   - Size of non-archive files (bytes)
   - Date/time generated
   - Recursion threshold used
+- File type statistics:
+  - Count and total size per file extension
+  - Sorted by total size (largest first)
 
 ## Usage
 
@@ -104,6 +107,8 @@ Source Code: All FileReceipt source code and files are on the GitHub [repository
    Note: Run this command from the directory where FileReceipt.py, fricon.png, fricon.ico, and LICENSE.txt are located.
 
 ## Update History
+5/27/2026 - Improved folder labeling in catalog (folders now show their name alongside the [Folder] tag). Renamed columns to "File / Folder Name" and "File / Folder Path" to reflect that folders are listed alongside files. Added File Type Statistics section to report.
+
 5/1/2026 - Added item number and file name columns to catalog table. Fixed size stats double-counting when zips are expanded; added Input Size and per-file extraction progress. Added summary counts for duplicate groups, redundant duplicates, empty files, empty folders, and errors to statistics section.
 
 12/12/2025 - Fixed deep nested zip processing. Corrected temp directory handling and file extraction path reconstruction for zips within zips within zips. Added processing statistics to CSV output (file counts, archive sizes, etc.).

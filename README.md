@@ -5,7 +5,7 @@ This application was developed with AI assistance and has undergone human review
 
 ---
 
-### * Program under development. Current version is still under testing. (5/27/2026) *
+### * Version 1.5 is under development and testing. (11/11/2026) *
 
 FileReceipt is a program that quickly catalogs user-selected files and folders. It creates a precise inventory of files that are nested within folders, subfolders, and zip files, eliminating the need for time-consuming manual inspection and documentation. It also calculates a hash value for each file, which can help verify that files are original, identical, and unaltered.
 
@@ -36,9 +36,12 @@ Click [here](https://github.com/btc-git/FileReceipt/releases/latest) to download
   - Total number of folders cataloged
   - Number of zip archives found
   - Total input size (bytes)
-  - Size of zip archives (bytes)
-  - Size of non-archive files (bytes)
+  - Total cataloged file size (bytes)
+  - Duplicate groups and redundant duplicate files
+  - Empty files and folders
+  - Processing errors
   - Date/time generated
+  - FileReceipt version
   - Recursion threshold used
 - File type statistics:
   - Count and total size per file extension
@@ -57,7 +60,9 @@ FileReceipt calculates a [hash value](https://en.wikipedia.org/wiki/Cryptographi
 
 FileReceipt uses hash algorithm [SHA-256](https://en.wikipedia.org/wiki/SHA-2) by default, but can be changed to use SHA-512, SHA-1, MD5, or other common algorithms. Changing the hash algorithm may be necessary to coordinate with other programs or individuals. When comparing files, in order for the hash values of identical files to match, the same hash algorithm must be used.
 
-The "Zip Recursion Threshold" feature controls how zip archives are processed. Settings include: 1 (no recursion), 10, 100, 1000, or "Off" (unlimited). When set to "1", FileReceipt will only catalog the zip file itself without examining its contents. Other threshold settings will skip processing zip files containing more than the selected number of files. For example, if set to 100, any zip containing over 100 files will have its contents skipped (though the zip file itself is still cataloged). This threshold applies to both top-level zip files and nested zip files (zips within zips). This feature helps prevent excessive processing time when dealing with large archives.
+The "Zip Recursion Threshold" feature controls how zip archives are processed. Settings include: 1 (no recursion), 10, 100, 1000, or "Off" (unlimited). When set to "1", FileReceipt will only catalog the zip file itself without examining its contents. Other threshold settings will skip processing zip files containing more than the selected number of files. Directory records do not count toward the threshold. For example, if set to 100, any zip containing over 100 files will have its contents skipped (though the zip file itself is still cataloged). This threshold applies to both top-level zip files and nested zip files (zips within zips). Threshold-based omissions are listed in the Errors section so the report shows when archive contents were intentionally not cataloged.
+
+Duplicate groups are based on matching hashes for non-empty files. Empty files are listed separately and are not included in duplicate groups. Processing errors identify files or folders that FileReceipt could not read and invalid zip archives; FileReceipt does not validate the internal format of arbitrary files such as PDFs, images, or videos.
 
 #### NOTE: Enable the "Long File Path" option in Windows for most accurate results.
 By default, Windows imposes a limit on the length of file paths and names, restricting them to approximately 260 characters combined. If a file path exceeds this limit due to long folder names or file names, some programs will not be able to open the file, even if the file is visible in Windows File Explorer.
@@ -100,13 +105,23 @@ Source Code: All FileReceipt source code and files are on the GitHub [repository
 3. Build the standalone executable:
    - Open a command prompt or terminal.
    - Navigate to the directory where you have the FileReceipt.py and other repository files located.
-   - Run the following command to build the standalone executable using PyInstaller:
+   - Run the following command to build the standalone executable using the checked-in PyInstaller specification:
      ```     
-     pyinstaller --onefile --windowed --icon="fricon.ico" --add-data "fricon.png;." --add-data "fricon.ico;." --add-data "LICENSE.txt;." FileReceipt.py
+     pyinstaller --clean --noconfirm FileReceipt.spec
      ```
-   Note: Run this command from the directory where FileReceipt.py, fricon.png, fricon.ico, and LICENSE.txt are located.
+   Note: Run this command from the repository directory. The executable will be created at `dist\FileReceipt.exe`.
+
+### Tests
+
+The regression tests use Python's standard library and do not require an additional test package. From the repository directory, run:
+
+```
+python -m unittest discover -s tests -v
+```
 
 ## Update History
+11/11/2026 - Corrected empty-file statistics and failed-read reporting. Prevented overlapping selections from cataloging the same physical file more than once. Improved zip threshold reporting and file counting, cataloged implicit zip folders, recorded folder traversal errors, and added reusable regression tests.
+
 5/27/2026 - Improved folder labeling in catalog (folders now show their name alongside the [Folder] tag). Renamed columns to "File / Folder Name" and "File / Folder Path" to reflect that folders are listed alongside files. Added File Type Statistics section to report.
 
 5/1/2026 - Added item number and file name columns to catalog table. Fixed size stats double-counting when zips are expanded; added Input Size and per-file extraction progress. Added summary counts for duplicate groups, redundant duplicates, empty files, empty folders, and errors to statistics section.

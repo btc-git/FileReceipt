@@ -7,6 +7,80 @@ from PyQt5.QtCore import QThread
 from .config import HASH_ALGORITHMS
 
 
+def _remove_overlapping_paths(file_paths):
+    """Return unique inputs that are not already covered by a selected folder."""
+    unique_paths = []
+    seen_paths = set()
+
+    for path in file_paths:
+        normalized_path = os.path.normpath(path)
+        comparison_path = os.path.normcase(os.path.abspath(normalized_path))
+        if comparison_path not in seen_paths:
+            seen_paths.add(comparison_path)
+            unique_paths.append((normalized_path, comparison_path))
+
+    selected_folders = [
+        comparison_path
+        for normalized_path, comparison_path in unique_paths
+        if os.path.isdir(normalized_path)
+    ]
+
+    filtered_paths = []
+    for normalized_path, comparison_path in unique_paths:
+        covered_by_folder = False
+        for folder_path in selected_folders:
+            if comparison_path == folder_path:
+                continue
+            try:
+                covered_by_folder = os.path.commonpath(
+                    [comparison_path, folder_path]
+                ) == folder_path
+            except ValueError:
+                covered_by_folder = False
+            if covered_by_folder:
+                break
+        if not covered_by_folder:
+            filtered_paths.append(normalized_path)
+
+    return filtered_paths
+
+
+def _zip_file_count(zip_ref):
+    """Count files in a ZIP archive without counting directory records."""
+    return sum(not info.is_dir() for info in zip_ref.infolist())
+
+
+def _zip_directory_entries(zip_ref, archive_path):
+    """Return logical ZIP folders, including folders without explicit records."""
+    entry_names = []
+    directory_names = set()
+
+    for info in zip_ref.infolist():
+        entry_name = info.filename.replace('\\', '/').strip('/')
+        if not entry_name:
+            continue
+
+        entry_names.append(entry_name)
+        parts = entry_name.split('/')
+        parent_parts = parts if info.is_dir() else parts[:-1]
+        for index in range(1, len(parent_parts) + 1):
+            directory_names.add('/'.join(parent_parts[:index]))
+
+    directories = []
+    for directory_name in sorted(directory_names):
+        prefix = directory_name + '/'
+        is_empty = not any(
+            entry_name != directory_name and entry_name.startswith(prefix)
+            for entry_name in entry_names
+        )
+        display_path = os.path.normpath(
+            os.path.join(archive_path, directory_name.replace('/', os.sep))
+        )
+        directories.append(([display_path, "--FOLDER--", "N/A"], is_empty))
+
+    return directories
+
+
 class HashingThread(QThread):
     """Thread for processing files and calculating hashes without blocking UI."""
     progress = QtCore.pyqtSignal(int)
@@ -15,7 +89,7 @@ class HashingThread(QThread):
 
     def __init__(self, file_paths, hash_algorithm, recursion_threshold):
         super().__init__()
-        self.file_paths = file_paths  # File paths to process
+        self.file_paths = _remove_overlapping_paths(file_paths)
         self.file_hashes = []  # Store file hashes
         self.error_logs = []  # Store any errors during the process
         self.empty_files = []  # Store info of empty files
@@ -38,7 +112,7 @@ class HashingThread(QThread):
                 if path.lower().endswith('.zip') and self.recursion_threshold != 1:
                     try:
                         with zipfile.ZipFile(path, 'r') as zip_ref:
-                            zip_file_count = len(zip_ref.namelist())
+                            zip_file_count = _zip_file_count(zip_ref)
                             # If under threshold or no threshold, count all files
                             if self.recursion_threshold <= 0 or zip_file_count <= self.recursion_threshold:
                                 total_count += zip_file_count
@@ -58,7 +132,7 @@ class HashingThread(QThread):
                             zip_path = os.path.join(root, file)
                             try:
                                 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                                    zip_file_count = len(zip_ref.namelist())
+                                    zip_file_count = _zip_file_count(zip_ref)
                                     # If under threshold or no threshold, count all files
                                     if self.recursion_threshold <= 0 or zip_file_count <= self.recursion_threshold:
                                         total_count += zip_file_count
@@ -132,8 +206,15 @@ class HashingThread(QThread):
                             if self.recursion_threshold > 1:
                                 try:
                                     with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                                        if len(zip_ref.namelist()) > self.recursion_threshold:
-                                            continue  # Skip processing this zip's contents
+                                        if _zip_file_count(zip_ref) > self.recursion_threshold:
+                                            error_message = (
+                                                f"Zip file '{os.path.normpath(file_path)}' contents not processed: "
+                                                f"contains more than {self.recursion_threshold} files"
+                                            )
+                                            self.error_logs.append(
+                                                (os.path.normpath(file_path), error_message)
+                                            )
+                                            continue
                                 except Exception as e:
                                     self.error_logs.append((os.path.normpath(file_path), f"Error reading zip file '{file_path}': {str(e)}"))
                                     continue
@@ -151,17 +232,14 @@ class HashingThread(QThread):
                 else:
                     # Calculate the hash of the file
                     hash_value, file_size, error_message = self.calculate_file_hash(file_path)
-                    # Check if file is empty
-                    if file_size == 0:
+                    if error_message:
+                        self.error_logs.append((os.path.normpath(file_path), error_message))
+                    elif file_size == 0:
                         # Create a file info list
                         file_info = [os.path.normpath(file_path), hash_value, file_size]
                         # Append the file info to empty_files and file_hashes lists
                         self.empty_files.append(file_info)
                         self.file_hashes.append(file_info)
-                    # Handle errors during hash calculation
-                    elif error_message:
-                        # Append error to error logs
-                        self.error_logs.append((os.path.normpath(file_path), error_message))
                     else:
                         # Append file info to file_hashes list
                         self.file_hashes.append([os.path.normpath(file_path), hash_value, file_size])
@@ -241,35 +319,22 @@ class HashingThread(QThread):
 
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 # Early threshold check - skip if over limit
-                if self.recursion_threshold > 1 and len(zip_ref.namelist()) > self.recursion_threshold:
+                if self.recursion_threshold > 1 and _zip_file_count(zip_ref) > self.recursion_threshold:
                     error_message = f"Zip file '{zip_path}' contents not processed: contains more than {self.recursion_threshold} files"
                     self.error_logs.append((zip_path, error_message))
                     return file_hashes, self.error_logs, [], []
                     
                 with tempfile.TemporaryDirectory() as temp_dir:
-                    all_entries = zip_ref.namelist()
-                    for zipped_file in all_entries:
-                        # Handle directory entries in zip files
-                        if zipped_file.endswith('/'):
-                            # Sanitize entry path: strip leading slashes to prevent drive-root paths
-                            safe_entry = zipped_file.lstrip('/')
-                            if not safe_entry:
-                                continue  # Skip bare '/' entries
-                            # Process directory entry
-                            # Store path, normalized properly
-                            original_dir_path = os.path.normpath(os.path.join(zip_path, safe_entry))
-                            
-                            # Check if directory is empty (no entries with this dir as prefix)
-                            is_empty = not any(
-                                entry != zipped_file and entry.startswith(zipped_file) 
-                                for entry in all_entries
-                            )
-                            
-                            if is_empty:
-                                self.empty_directories.append([original_dir_path, "--FOLDER--", "N/A"])
-                            else:
-                                file_hashes.append([original_dir_path, "--FOLDER--", "N/A"])
+                    for directory_info, is_empty in _zip_directory_entries(zip_ref, zip_path):
+                        if is_empty:
+                            self.empty_directories.append(directory_info)
+                        else:
+                            file_hashes.append(directory_info)
+
+                    for zip_info in zip_ref.infolist():
+                        if zip_info.is_dir():
                             continue
+                        zipped_file = zip_info.filename
                             
                         # Extract this file now (instead of extractall upfront) so that
                         # progress signals fire between files rather than after a long block.
@@ -369,33 +434,23 @@ class HashingThread(QThread):
             try:
                 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                     # Early threshold check
-                    if self.recursion_threshold > 1 and len(zip_ref.namelist()) > self.recursion_threshold:
+                    if self.recursion_threshold > 1 and _zip_file_count(zip_ref) > self.recursion_threshold:
                         error_message = f"Nested zip file '{parent_zip_path}' not processed: contains more than {self.recursion_threshold} files"
                         error_logs.append((parent_zip_path, error_message))
                         return file_hashes, error_logs, empty_files_zip, empty_dirs_zip
                     
-                    for file in zip_ref.namelist():
+                    for directory_info, is_empty in _zip_directory_entries(zip_ref, parent_zip_path):
+                        if is_empty:
+                            empty_dirs_zip.append(directory_info)
+                        else:
+                            file_hashes.append(directory_info)
+
+                    for zip_info in zip_ref.infolist():
                         if self.cancelled:
                             break
-                        
-                        # Process directory entries in zip files
-                        if file.endswith('/'):
-                            safe_entry = file.lstrip('/')
-                            if not safe_entry:
-                                continue  # Skip bare '/' entries
-                            normalized_path = os.path.normpath(os.path.join(parent_zip_path, safe_entry))
-                            
-                            # Check if directory is empty
-                            is_empty = not any(
-                                entry != file and entry.startswith(file) 
-                                for entry in zip_ref.namelist()
-                            )
-                            
-                            if is_empty:
-                                empty_dirs_zip.append([normalized_path, "--FOLDER--", "N/A"])
-                            else:
-                                file_hashes.append([normalized_path, "--FOLDER--", "N/A"])
+                        if zip_info.is_dir():
                             continue
+                        file = zip_info.filename
                         
                         # Update progress for this file inside the nested zip
                         self.update_progress()
@@ -428,50 +483,45 @@ class HashingThread(QThread):
                                 # Process the nested zip with shared temp directory
                                 with zipfile.ZipFile(extracted_path, 'r') as nested_zip:
                                     # Check threshold for deeply nested zip
-                                    if self.recursion_threshold > 1 and len(nested_zip.namelist()) > self.recursion_threshold:
+                                    if self.recursion_threshold > 1 and _zip_file_count(nested_zip) > self.recursion_threshold:
                                         error_message = f"Deep nested zip file '{normalized_file_path}' not processed: contains more than {self.recursion_threshold} files"
                                         error_logs.append((normalized_file_path, error_message))
                                     else:
-                                        # Extract and process each file in the nested zip
-                                        for nested_file in nested_zip.namelist():
-                                            if nested_file.endswith('/'):
-                                                # Process directory entry in nested zip
-                                                safe_nested = nested_file.lstrip('/')
-                                                if not safe_nested:
-                                                    continue  # Skip bare '/' entries
-                                                nested_dir_path = os.path.normpath(os.path.join(normalized_file_path, safe_nested))
-                                                is_nested_dir_empty = not any(
-                                                    nf != nested_file and nf.startswith(nested_file) 
-                                                    for nf in nested_zip.namelist()
-                                                )
-                                                
-                                                if is_nested_dir_empty:
-                                                    empty_dirs_zip.append([nested_dir_path, "--FOLDER--", "N/A"])
-                                                else:
-                                                    file_hashes.append([nested_dir_path, "--FOLDER--", "N/A"])
+                                        for directory_info, is_empty in _zip_directory_entries(
+                                            nested_zip, normalized_file_path
+                                        ):
+                                            if is_empty:
+                                                empty_dirs_zip.append(directory_info)
                                             else:
-                                                # Process file in nested zip - use returned path from extract
-                                                nested_file_path = nested_zip.extract(nested_file, temp_dir)
-                                                nested_file_path = os.path.normpath(nested_file_path)
-                                                nested_original_path = os.path.normpath(os.path.join(normalized_file_path, nested_file))
-                                                
-                                                # Check if this file is also a zip - recursively process if so
-                                                if nested_file.lower().endswith('.zip'):
-                                                    # Recursively process this deeply nested zip with shared temp directory
-                                                    deep_hashes, deep_errors, deep_empty_files, deep_empty_dirs = self.calculate_nested_zip_hashes(nested_file_path, nested_original_path, temp_dir)
-                                                    file_hashes.extend(deep_hashes)
-                                                    error_logs.extend(deep_errors)
-                                                    empty_files_zip.extend(deep_empty_files)
-                                                    empty_dirs_zip.extend(deep_empty_dirs)
+                                                file_hashes.append(directory_info)
+
+                                        # Extract and process each file in the nested zip
+                                        for nested_info in nested_zip.infolist():
+                                            if nested_info.is_dir():
+                                                continue
+                                            nested_file = nested_info.filename
+                                            # Process file in nested zip - use returned path from extract
+                                            nested_file_path = nested_zip.extract(nested_file, temp_dir)
+                                            nested_file_path = os.path.normpath(nested_file_path)
+                                            nested_original_path = os.path.normpath(os.path.join(normalized_file_path, nested_file))
+
+                                            # Check if this file is also a zip - recursively process if so
+                                            if nested_file.lower().endswith('.zip'):
+                                                # Recursively process this deeply nested zip with shared temp directory
+                                                deep_hashes, deep_errors, deep_empty_files, deep_empty_dirs = self.calculate_nested_zip_hashes(nested_file_path, nested_original_path, temp_dir)
+                                                file_hashes.extend(deep_hashes)
+                                                error_logs.extend(deep_errors)
+                                                empty_files_zip.extend(deep_empty_files)
+                                                empty_dirs_zip.extend(deep_empty_dirs)
+                                            else:
+                                                # Process regular file
+                                                hash_value, file_size, error_message = self.calculate_file_hash(nested_file_path)
+                                                if error_message:
+                                                    error_logs.append((nested_original_path, error_message))
                                                 else:
-                                                    # Process regular file
-                                                    hash_value, file_size, error_message = self.calculate_file_hash(nested_file_path)
-                                                    if error_message:
-                                                        error_logs.append((nested_original_path, error_message))
-                                                    else:
-                                                        file_hashes.append([nested_original_path, hash_value, file_size])
-                                                        if file_size == 0:
-                                                            empty_files_zip.append([nested_original_path, hash_value, 0])
+                                                    file_hashes.append([nested_original_path, hash_value, file_size])
+                                                    if file_size == 0:
+                                                        empty_files_zip.append([nested_original_path, hash_value, 0])
                             except Exception as e:
                                 error_message = f"Error processing nested zip file '{normalized_file_path}': {str(e)}"
                                 error_logs.append((normalized_file_path, error_message))
@@ -507,8 +557,17 @@ class HashingThread(QThread):
         empty_files_folder = []
         empty_dirs_folder = []
 
+        def record_walk_error(error):
+            error_path = getattr(error, 'filename', None) or folder_path
+            error_logs.append((
+                os.path.normpath(error_path),
+                f"Error accessing folder '{os.path.normpath(error_path)}': {str(error)}"
+            ))
+
         try:
-            for root, dirs, files in os.walk(folder_path, followlinks=False):
+            for root, dirs, files in os.walk(
+                folder_path, followlinks=False, onerror=record_walk_error
+            ):
                 if self.cancelled:
                     break
 
@@ -537,6 +596,10 @@ class HashingThread(QThread):
                     if norm_file_path.lower().endswith('.zip'):
                         hash_value, file_size, error_message = self.calculate_file_hash(norm_file_path)
                         
+                        if error_message:
+                            error_logs.append((norm_file_path, error_message))
+                            continue
+
                         # Add the zip file itself to the results
                         file_hashes.append([norm_file_path, hash_value, file_size])
                         
@@ -548,7 +611,7 @@ class HashingThread(QThread):
                         if self.recursion_threshold > 1:
                             try:
                                 with zipfile.ZipFile(norm_file_path, 'r') as zip_ref:
-                                    if len(zip_ref.namelist()) > self.recursion_threshold:
+                                    if _zip_file_count(zip_ref) > self.recursion_threshold:
                                         error_message = f"Zip file '{norm_file_path}' contents not processed: contains more than {self.recursion_threshold} files"
                                         self.error_logs.append((norm_file_path, error_message))
                                         continue
@@ -577,12 +640,12 @@ class HashingThread(QThread):
                         # Create normalized file info
                         file_info = [norm_file_path, hash_value, file_size]
                         
-                        # Add file to appropriate collections
-                        file_hashes.append(file_info)
-                        if file_size == 0:
-                            empty_files_folder.append(file_info)
-                        elif error:
+                        if error:
                             error_logs.append((norm_file_path, error))
+                        else:
+                            file_hashes.append(file_info)
+                            if file_size == 0:
+                                empty_files_folder.append(file_info)
 
                         self.processing_file.emit(os.path.basename(norm_file_path))
 

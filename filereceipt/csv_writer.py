@@ -3,6 +3,7 @@ import io
 import csv
 from datetime import datetime
 from tzlocal import get_localzone
+from .version import __version__
 
 
 def write_results_to_csv(csv_file_path, file_hashes, error_logs, empty_files, 
@@ -98,7 +99,7 @@ def write_results_to_csv(csv_file_path, file_hashes, error_logs, empty_files,
         writer.writerow([f"Zip Archives Cataloged: {stats['total_zips']}"])
         writer.writerow([f"Input File Size: {input_size:,} bytes"])
         writer.writerow([f"Total Cataloged File Size: {stats['total_size']:,} bytes"])
-        writer.writerow([f"Files With Duplicates: {stats['duplicate_groups']}"])
+        writer.writerow([f"Duplicate Groups: {stats['duplicate_groups']}"])
         writer.writerow([f"Redundant Duplicate Files: {stats['extra_duplicates']}"])
         writer.writerow([f"Empty Files: {len(empty_files)}"])
         writer.writerow([f"Empty Folders: {len(empty_dirs)}"])
@@ -121,6 +122,7 @@ def write_results_to_csv(csv_file_path, file_hashes, error_logs, empty_files,
 
         writer.writerow(["Date/Time Generated:"])
         writer.writerow([current_time])
+        writer.writerow([f"FileReceipt Version: {__version__}"])
         
         # Get the recursion threshold setting used
         threshold_text = "Off (no limit)" if recursion_threshold == -1 else str(recursion_threshold)
@@ -207,10 +209,6 @@ def calculate_statistics(file_hashes, empty_files, empty_dirs, duplicates=None):
                 total_size += size
                 if not _is_inside_zip(path):
                     standalone_size += size
-
-    # Add empty files to total count and size
-    total_files += len(empty_files)
-    total_size += sum(f[2] for f in empty_files)
 
     # Add empty directories to total folder count
     total_folders += len(empty_dirs)

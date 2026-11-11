@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QIcon, QDesktopServices
 from ..config import HASH_ALGORITHM_DISPLAY_NAMES
+from ..version import __version__
 from ..utils import resource_path, open_folder
 from ..hashing import HashingThread
 from ..csv_writer import write_results_to_csv
@@ -36,7 +37,9 @@ class MainWindow(QWidget):
     def init_ui(self):
         """Initialize the UI of the main window."""
         # Set the window title
-        self.setWindowTitle('FileReceipt - [Development Version - For Testing Only]')
+        self.setWindowTitle(
+            f'FileReceipt v{__version__} - [Development Version - For Testing Only]'
+        )
 
         # Get screen dimensions
         screen = QDesktopWidget().screenGeometry()

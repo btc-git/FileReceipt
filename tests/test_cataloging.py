@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import io
 import os
 import tempfile
@@ -129,28 +130,38 @@ class CatalogingTests(unittest.TestCase):
 
     def test_nested_zip_files_and_empty_files_are_cataloged(self):
         with tempfile.TemporaryDirectory() as root:
+            nested_content = b"nested content" * 10000
             inner_data = io.BytesIO()
             with zipfile.ZipFile(inner_data, "w") as inner_archive:
-                inner_archive.writestr("folder/file.txt", b"nested content")
+                inner_archive.writestr("folder/file.txt", nested_content)
                 inner_archive.writestr("folder/empty.bin", b"")
 
             archive_path = os.path.join(root, "outer.zip")
             with zipfile.ZipFile(archive_path, "w") as outer_archive:
                 outer_archive.writestr("inner.zip", inner_data.getvalue())
 
-            worker = self.run_worker([archive_path])
+            with patch.object(
+                zipfile.ZipFile,
+                "read",
+                side_effect=AssertionError("ZIP members must be streamed"),
+            ):
+                worker = self.run_worker([archive_path])
             cataloged_paths = {entry[0] for entry in worker.file_hashes}
             inner_display_path = os.path.normpath(
                 os.path.join(archive_path, "inner.zip")
             )
+            nested_file_path = os.path.normpath(
+                os.path.join(inner_display_path, "folder", "file.txt")
+            )
+            nested_entry = next(
+                entry for entry in worker.file_hashes
+                if entry[0] == nested_file_path
+            )
 
             self.assertIn(inner_display_path, cataloged_paths)
-            self.assertIn(
-                os.path.normpath(
-                    os.path.join(inner_display_path, "folder", "file.txt")
-                ),
-                cataloged_paths,
-            )
+            self.assertIn(nested_file_path, cataloged_paths)
+            self.assertEqual(nested_entry[1], hashlib.sha256(nested_content).hexdigest())
+            self.assertEqual(nested_entry[2], len(nested_content))
             self.assertEqual(len(worker.empty_files), 1)
             self.assertEqual(worker.error_logs, [])
 
@@ -208,7 +219,7 @@ class CatalogingTests(unittest.TestCase):
 
             self.assertIn("Duplicate Groups: 1", first_column)
             self.assertNotIn("Files With Duplicates: 1", first_column)
-            self.assertIn("FileReceipt Version: 1.5", first_column)
+            self.assertIn("FileReceipt Version: 1.5.1", first_column)
 
 
 if __name__ == "__main__":

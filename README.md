@@ -5,9 +5,9 @@ This application was developed with AI assistance and has undergone human review
 
 ---
 
-### * Version 1.5 is under development and testing. (11/11/2026) *
+### * Version 1.5.1 is under development and testing. (11/11/2026) *
 
-FileReceipt is a program that quickly catalogs user-selected files and folders. It creates a precise inventory of files that are nested within folders, subfolders, and zip files, eliminating the need for time-consuming manual inspection and documentation. It also calculates a hash value for each file, which can help verify that files are original, identical, and unaltered.
+FileReceipt is a program that quickly catalogs user-selected files and folders. It creates a precise inventory of files that are nested within folders, subfolders, and zip files, eliminating the need for time-consuming manual inspection and documentation. It also calculates a hash value for each file, which can help determine whether file contents are identical or have changed.
 
 Having a record of files transferred between parties can be useful for coordination and resolving disputes. For example, the sender can create a FileReceipt before sending (or use [another method](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-filehash?view=powershell-7.3) to catalog information), creating a record of what they're sending. Similarly, the receiver can create a FileReceipt upon receipt to document what they've received. These two catalogs can be compared to ensure consistency and can be regenerated at any point to verify both parties possess identical files. [File verification](https://en.wikipedia.org/wiki/File_verification) using [cryptographic hash functions](https://en.wikipedia.org/wiki/Cryptographic_hash_function) is a [reliable and widely accepted](https://csrc.nist.gov/Projects/Hash-Functions) method to [ensure data integrity](https://learn.microsoft.com/en-us/dotnet/standard/security/ensuring-data-integrity-with-hash-codes).
 
@@ -56,7 +56,7 @@ To use FileReceipt:
 
 FileReceipt works [recursively](https://en.wikipedia.org/wiki/Recursion_(computer_science)), meaning if you add a folder or zip file to the list, it will search inside and catalog all the files, folders, and zip files within it. By adding the top-level folder or zip file, you can catalog the entire directory structure and contents of everything nested inside.
 
-FileReceipt calculates a [hash value](https://en.wikipedia.org/wiki/Cryptographic_hash_function) for each file that it catalogs. This value is unique to the file and can be used to demonstrate that files are identical or have not changed over time. Once a hash value has been calculated, it can be recalculated again at any time and will remain the same as long as the file has not changed. If the hash value differs on any subsequent recalculation, it means the files are no longer the same.
+FileReceipt calculates a [hash value](https://en.wikipedia.org/wiki/Cryptographic_hash_function) for each file that it catalogs. A hash is a repeatable fingerprint of the file's contents, not proof of the file's source or originality. When SHA-256 is used, matching hashes provide extremely strong evidence that two files contain identical data, while different hashes show that their contents differ. Recalculating the hash later can therefore show whether the file's contents have changed.
 
 FileReceipt uses hash algorithm [SHA-256](https://en.wikipedia.org/wiki/SHA-2) by default, but can be changed to use SHA-512, SHA-1, MD5, or other common algorithms. Changing the hash algorithm may be necessary to coordinate with other programs or individuals. When comparing files, in order for the hash values of identical files to match, the same hash algorithm must be used.
 
@@ -120,6 +120,8 @@ python -m unittest discover -s tests -v
 ```
 
 ## Update History
+11/11/2026 - Updated the hash explanation to distinguish content matching from proof of source or originality. Changed nested zip hashing to stream decompressed file data in chunks instead of loading an entire archive member into memory.
+
 11/11/2026 - Corrected empty-file statistics and failed-read reporting. Prevented overlapping selections from cataloging the same physical file more than once. Improved zip threshold reporting and file counting, cataloged implicit zip folders, recorded folder traversal errors, and added reusable regression tests.
 
 5/27/2026 - Improved folder labeling in catalog (folders now show their name alongside the [Folder] tag). Renamed columns to "File / Folder Name" and "File / Folder Path" to reflect that folders are listed alongside files. Added File Type Statistics section to report.

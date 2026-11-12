@@ -526,11 +526,17 @@ class HashingThread(QThread):
                                 error_message = f"Error processing nested zip file '{normalized_file_path}': {str(e)}"
                                 error_logs.append((normalized_file_path, error_message))
                         else:
-                            # Process regular files in zip
-                            file_data = zip_ref.read(file)
-                            file_size = len(file_data)
                             hasher = getattr(hashlib, hash_algorithm)()
-                            hasher.update(file_data)
+                            file_size = 0
+                            with zip_ref.open(zip_info, 'r') as zipped_file:
+                                while True:
+                                    if self.cancelled:
+                                        return file_hashes, error_logs, empty_files_zip, empty_dirs_zip
+                                    buffer = zipped_file.read(65536)
+                                    if not buffer:
+                                        break
+                                    hasher.update(buffer)
+                                    file_size += len(buffer)
                             hash_value = hasher.hexdigest()
                             
                             file_hashes.append([normalized_file_path, hash_value, file_size])

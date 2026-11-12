@@ -41,3 +41,4 @@ Thumbs.db
 # PyInstaller build artifacts
 *.manifest
 *.spec
+!FileReceipt.spec

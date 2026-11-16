@@ -5,7 +5,13 @@ This application was developed with AI assistance and has undergone human review
 
 ---
 
-### * Version 1.5.1 is under development and testing. (11/11/2026) *
+### * Version 1.5.2 is under development and testing. (11/15/2026) *
+
+**Found a bug, have a feature request, or need help using the app?**
+[View open issues](https://github.com/btc-git/FileReceipt/issues) or
+[open a new issue](https://github.com/btc-git/FileReceipt/issues/new/choose).
+Issues are public. Redact sensitive details from any information, screenshots,
+or logs you submit.
 
 FileReceipt is a program that quickly catalogs user-selected files and folders. It creates a precise inventory of files that are nested within folders, subfolders, and zip files, eliminating the need for time-consuming manual inspection and documentation. It also calculates a hash value for each file, which can help determine whether file contents are identical or have changed.
 
@@ -120,6 +126,8 @@ python -m unittest discover -s tests -v
 ```
 
 ## Update History
+11/15/2026 - Added GitHub issue-reporting guidance below the development notice and compact documentation, report, and issue-list links in the application footer, with privacy guidance on hover.
+
 11/11/2026 - Updated the hash explanation to distinguish content matching from proof of source or originality. Changed nested zip hashing to stream decompressed file data in chunks instead of loading an entire archive member into memory.
 
 11/11/2026 - Corrected empty-file statistics and failed-read reporting. Prevented overlapping selections from cataloging the same physical file more than once. Improved zip threshold reporting and file counting, cataloged implicit zip folders, recorded folder traversal errors, and added reusable regression tests.

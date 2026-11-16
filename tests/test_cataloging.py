@@ -5,7 +5,12 @@ import os
 import tempfile
 import unittest
 import zipfile
+from pathlib import Path
 from unittest.mock import patch
+
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QTextDocument
+from PyQt5.QtWidgets import QApplication, QLabel
 
 from filereceipt.csv_writer import (
     calculate_statistics,
@@ -13,6 +18,7 @@ from filereceipt.csv_writer import (
     write_results_to_csv,
 )
 from filereceipt.hashing import HashingThread
+from filereceipt.ui.main_window import MainWindow
 
 
 class CatalogingTests(unittest.TestCase):
@@ -219,7 +225,71 @@ class CatalogingTests(unittest.TestCase):
 
             self.assertIn("Duplicate Groups: 1", first_column)
             self.assertNotIn("Files With Duplicates: 1", first_column)
-            self.assertIn("FileReceipt Version: 1.5.1", first_column)
+            self.assertIn("FileReceipt Version: 1.5.2", first_column)
+
+
+class HelpGuidanceTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+        cls.app = QApplication.instance() or QApplication([])
+
+    def test_readme_issue_guidance_follows_development_notice(self):
+        readme = (
+            Path(__file__).resolve().parents[1] / "README.md"
+        ).read_text(encoding="utf-8")
+        after_notice = readme.split(
+            "is under development and testing.", 1
+        )[1].split("\n", 1)[1].lstrip()
+        self.assertTrue(after_notice.startswith(
+            "**Found a bug, have a feature request, or need help using the app?**\n"
+            "[View open issues](https://github.com/btc-git/FileReceipt/issues) or\n"
+            "[open a new issue](https://github.com/btc-git/FileReceipt/issues/new/choose).\n"
+            "Issues are public. Redact sensitive details from any information, screenshots,\n"
+            "or logs you submit.\n"
+        ))
+
+    def test_footer_has_compact_help_links_and_privacy_tooltip(self):
+        with patch.object(MainWindow, "check_long_paths_enabled", return_value=True):
+            window = MainWindow()
+        self.addCleanup(window.close)
+        labels = window.findChildren(QLabel)
+        for plain_text, links in (
+            (
+                "More info on GitHub",
+                (("GitHub", "https://github.com/btc-git/FileReceipt"),),
+            ),
+            (
+                "Report or View Issues",
+                (
+                    ("Report", "https://github.com/btc-git/FileReceipt/issues/new/choose"),
+                    ("View Issues", "https://github.com/btc-git/FileReceipt/issues"),
+                ),
+            ),
+        ):
+            with self.subTest(label=plain_text):
+                for label in labels:
+                    document = QTextDocument()
+                    document.setHtml(label.text())
+                    if document.toPlainText() == plain_text:
+                        break
+                else:
+                    self.fail(f"Missing footer label: {plain_text}")
+                self.assertTrue(label.openExternalLinks())
+                self.assertTrue(
+                    label.textInteractionFlags() & Qt.LinksAccessibleByMouse
+                )
+                for link_text, url in links:
+                    cursor = document.find(link_text)
+                    self.assertFalse(cursor.isNull())
+                    self.assertEqual(cursor.charFormat().anchorHref(), url)
+                if plain_text == "Report or View Issues":
+                    self.assertEqual(
+                        label.toolTip(),
+                        "Found a bug, have a feature request, or need help using the app?\n\n"
+                        "Issues are public. Redact sensitive details from any information, "
+                        "screenshots, or logs you submit.",
+                    )
 
 
 if __name__ == "__main__":

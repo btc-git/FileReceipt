@@ -254,19 +254,29 @@ class MainWindow(QWidget):
         # Add the bottom toolbar layout to the bottom layout
         bottom_layout.addLayout(bottom_toolbar_layout)
 
-        # Create a QLabel for the 'Visit GitHub' label
-        label = QLabel('Visit GitHub for more information:')
-        # Add the label to the bottom toolbar layout
-        bottom_toolbar_layout.addWidget(label)
-
         # Create a QLabel with a hyperlink to the GitHub repository
-        hyperlink = QLabel('<a href="https://github.com/btc-git/FileReceipt">github.com/btc-git/FileReceipt</a>')
+        hyperlink = QLabel(
+            'More info on <a href="https://github.com/btc-git/FileReceipt">GitHub</a>'
+        )
         # Allow opening external links
         hyperlink.setOpenExternalLinks(True)
         # Connect the hyperlink's activated signal to the open_link method
         hyperlink.linkActivated.connect(self.open_link)
         # Add the hyperlink to the bottom toolbar layout
         bottom_toolbar_layout.addWidget(hyperlink)
+
+        issues_link = QLabel(
+            '<a href="https://github.com/btc-git/FileReceipt/issues/new/choose">Report</a>'
+            ' or <a href="https://github.com/btc-git/FileReceipt/issues">View Issues</a>'
+        )
+        issues_link.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        issues_link.setOpenExternalLinks(True)
+        issues_link.setToolTip(
+            'Found a bug, have a feature request, or need help using the app?\n\n'
+            'Issues are public. Redact sensitive details from any information, '
+            'screenshots, or logs you submit.'
+        )
+        bottom_toolbar_layout.addWidget(issues_link)
 
         # Add a stretchable space to push the next widgets to the center
         bottom_toolbar_layout.addStretch(1)

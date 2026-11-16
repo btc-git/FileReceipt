@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QTextDocument
+from PyQt5.QtGui import QImage, QImageReader, QTextDocument
 from PyQt5.QtWidgets import QApplication, QLabel
 
 from filereceipt.csv_writer import (
@@ -225,7 +225,7 @@ class CatalogingTests(unittest.TestCase):
 
             self.assertIn("Duplicate Groups: 1", first_column)
             self.assertNotIn("Files With Duplicates: 1", first_column)
-            self.assertIn("FileReceipt Version: 1.5.2", first_column)
+            self.assertIn("FileReceipt Version: 1.5.3", first_column)
 
 
 class HelpGuidanceTests(unittest.TestCase):
@@ -290,6 +290,31 @@ class HelpGuidanceTests(unittest.TestCase):
                         "Issues are public. Redact sensitive details from any information, "
                         "screenshots, or logs you submit.",
                     )
+
+
+class IconTests(unittest.TestCase):
+    def test_icon_has_native_sizes_and_preserves_original_artwork(self):
+        root = Path(__file__).resolve().parents[1]
+        reader = QImageReader(str(root / "fricon.ico"))
+        frames = {}
+        for index in range(reader.imageCount()):
+            self.assertTrue(reader.jumpToImage(index), reader.errorString())
+            image = reader.read()
+            self.assertFalse(image.isNull(), reader.errorString())
+            self.assertEqual(image.width(), image.height())
+            frames[image.width()] = image
+
+        required_sizes = {16, 20, 24, 32, 40, 48, 64, 96, 128, 256}
+        self.assertTrue(
+            required_sizes.issubset(frames),
+            f"Missing native icon sizes: {required_sizes - frames.keys()}",
+        )
+        original = QImage(str(root / "fricon.png"))
+        self.assertFalse(original.isNull())
+        self.assertEqual(
+            frames[256].convertToFormat(QImage.Format_ARGB32),
+            original.convertToFormat(QImage.Format_ARGB32),
+        )
 
 
 if __name__ == "__main__":

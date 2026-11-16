@@ -5,7 +5,7 @@ This application was developed with AI assistance and has undergone human review
 
 ---
 
-### * Version 1.5.2 is under development and testing. (11/15/2026) *
+### * Version 1.5.3 is under development and testing. (11/15/2026) *
 
 **Found a bug, have a feature request, or need help using the app?**
 [View open issues](https://github.com/btc-git/FileReceipt/issues) or
@@ -117,6 +117,8 @@ Source Code: All FileReceipt source code and files are on the GitHub [repository
      ```
    Note: Run this command from the repository directory. The executable will be created at `dist\FileReceipt.exe`.
 
+The application and executable share [fricon.ico](fricon.ico), generated from the original [fricon.png](fricon.png) artwork. Keep the 16, 20, 24, 32, 40, 48, 64, 96, 128, and 256 pixel icon sizes when replacing it so Windows can display sharp icons at different display scales.
+
 ### Tests
 
 The regression tests use Python's standard library and do not require an additional test package. From the repository directory, run:
@@ -126,6 +128,8 @@ python -m unittest discover -s tests -v
 ```
 
 ## Update History
+11/15/2026 - Improved icon sharpness with native sizes from 16 to 256 pixels while preserving the original artwork.
+
 11/15/2026 - Added GitHub issue-reporting guidance below the development notice and compact documentation, report, and issue-list links in the application footer, with privacy guidance on hover.
 
 11/11/2026 - Updated the hash explanation to distinguish content matching from proof of source or originality. Changed nested zip hashing to stream decompressed file data in chunks instead of loading an entire archive member into memory.
